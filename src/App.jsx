@@ -123,23 +123,55 @@ export default function ChurchPortal() {
 
           <div className="bg-white p-6 md:p-10 rounded-3xl border shadow-sm min-h-[600px]">
             {adminActiveTab === 'settings' && (
-              <div className="space-y-6 max-w-2xl">
-                <h3 className="font-bold text-emerald-900 text-xs uppercase border-b pb-2 tracking-widest">Site Headers & Legend</h3>
+              <div className="space-y-8 max-w-2xl">
+                <h3 className="font-bold text-emerald-900 text-[10px] uppercase border-b pb-2 tracking-widest italic">Header & Branding Architect</h3>
 
-                {/* Existing Header Inputs */}
-                <div className="grid grid-cols-1 gap-4 bg-slate-50 p-4 rounded-2xl border">
-                  <div><label className="text-[10px] font-bold text-slate-400">MAIN TITLE</label><input className="w-full p-2 border rounded mt-1" defaultValue={siteContent.mainTitle} onBlur={(e) => updateSite({ mainTitle: e.target.value })} /></div>
-                  <div><label className="text-[10px] font-bold text-slate-400">MAP HEADER</label><input className="w-full p-2 border rounded mt-1" defaultValue={siteContent.mapHeader || 'Floor Plan Architect v5.1'} onBlur={(e) => updateSite({ mapHeader: e.target.value })} /></div>
+                <div className="grid grid-cols-1 gap-6 bg-slate-50 p-6 rounded-3xl border shadow-inner">
+                  {/* Main Title Editor */}
+                  <div>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Site Main Title</label>
+                    <input
+                      className="w-full p-3 border rounded-xl mt-1 text-sm font-serif italic outline-none focus:border-emerald-500 transition-all"
+                      defaultValue={siteContent.mainTitle}
+                      onBlur={(e) => updateSite({ mainTitle: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Subtitle Editor (Rebuild, Revive, Reign) */}
+                  <div>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Subtitle / Theme Slogan</label>
+                    <input
+                      className="w-full p-3 border rounded-xl mt-1 text-[11px] font-bold tracking-[0.2em] uppercase outline-none focus:border-emerald-500 transition-all"
+                      defaultValue={siteContent.subTitle}
+                      placeholder="REBUILD • REVIVE • REIGN"
+                      onBlur={(e) => updateSite({ subTitle: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Bible Verse Editor */}
+                  <div>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Featured Bible Verse</label>
+                    <textarea
+                      className="w-full p-3 border rounded-xl mt-1 h-28 text-xs font-serif italic leading-relaxed outline-none focus:border-emerald-500 transition-all"
+                      defaultValue={siteContent.verse}
+                      placeholder="Enter the main scripture here..."
+                      onBlur={(e) => updateSite({ verse: e.target.value })}
+                    />
+                  </div>
                 </div>
 
-                {/* NEW: Legend Text Editor */}
-                <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100 space-y-4">
-                  <h4 className="text-[10px] font-bold text-emerald-800 uppercase italic">Edit Map Legend Labels</h4>
+                {/* Table Header Customization */}
+                <div className="space-y-4">
+                  <h4 className="text-[9px] font-black text-emerald-800 uppercase italic">Section Headers</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className="text-[8px] font-black">ROOMS LABEL</label><input className="w-full p-2 text-xs border rounded" defaultValue={siteContent.legendRooms || 'Rooms & Walls'} onBlur={(e) => updateSite({ legendRooms: e.target.value })} /></div>
-                    <div><label className="text-[8px] font-black">SEATING LABEL</label><input className="w-full p-2 text-xs border rounded" defaultValue={siteContent.legendSeating || 'Guest Seating Blocks'} onBlur={(e) => updateSite({ legendSeating: e.target.value })} /></div>
-                    <div><label className="text-[8px] font-black">ENTRY LABEL</label><input className="w-full p-2 text-xs border rounded" defaultValue={siteContent.legendEntry || 'T&O / Reception Box'} onBlur={(e) => updateSite({ legendEntry: e.target.value })} /></div>
-                    <div><label className="text-[8px] font-black">BANQUET LABEL</label><input className="w-full p-2 text-xs border rounded" defaultValue={siteContent.legendBanquet || 'Catering Table Setup'} onBlur={(e) => updateSite({ legendBanquet: e.target.value })} /></div>
+                    <div>
+                      <label className="text-[8px] font-bold text-slate-400">PROGRAM TAB HEADER</label>
+                      <input className="w-full p-2 text-xs border rounded-lg" defaultValue={siteContent.programHeader} onBlur={(e) => updateSite({ programHeader: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-[8px] font-bold text-slate-400">LOGISTICS TAB HEADER</label>
+                      <input className="w-full p-2 text-xs border rounded-lg" defaultValue={siteContent.cateringHeader} onBlur={(e) => updateSite({ cateringHeader: e.target.value })} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -298,34 +330,51 @@ export default function ChurchPortal() {
       </nav>
 
       <main className="pt-24 px-6 max-w-7xl mx-auto pb-20">
-        <header className="text-center mb-16 px-4 animate-in fade-in duration-700">
-          <h1 className="text-5xl md:text-7xl font-serif text-emerald-900 mb-2 italic leading-tight">{siteContent.mainTitle}</h1>
-          <p className="text-[#C5A021] font-bold tracking-[0.3em] text-[10px] md:text-sm mb-4 uppercase">{siteContent.subTitle}</p>
-          <p className="text-emerald-800 font-serif italic text-lg md:text-2xl opacity-80 whitespace-pre-line leading-relaxed">{siteContent.verse}</p>
+        <header className="text-center mb-8 md:mb-12 px-4 animate-in fade-in duration-700">
+          {/* Main Title */}
+          <h1 className="text-4xl md:text-7xl font-serif text-emerald-900 mb-2 md:mb-3 italic leading-tight tracking-tight">
+            {siteContent.mainTitle}
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-[#C5A021] font-bold tracking-[0.25em] md:tracking-[0.3em] text-[10px] md:text-sm mb-4 md:mb-6 uppercase">
+            {siteContent.subTitle}
+          </p>
+
+          {/* Fluid Verse - Dynamic sizing with tighter spacing */}
+          <div className="max-w-xs md:max-w-4xl mx-auto">
+            <p className="text-emerald-800 font-serif italic opacity-75 leading-relaxed 
+                  text-[12px] sm:text-[14px] md:text-[18px] lg:text-[20px] 
+                  md:line-clamp-2 overflow-hidden">
+              {siteContent.verse}
+            </p>
+          </div>
         </header>
 
         {activeTab === 'vision' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in duration-500">
-            <div className="bg-emerald-900 text-white p-10 rounded-3xl shadow-2xl">
-              <h2 className="text-3xl font-serif mb-8 text-[#C5A021]">The 4 Spiritual Pillars</h2>
-              <div className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 animate-in duration-500">
+            {/* Pillars Section */}
+            <div className="bg-emerald-900 text-white p-6 md:p-10 rounded-3xl shadow-2xl">
+              <h2 className="text-2xl md:text-3xl font-serif mb-6 md:mb-8 text-[#C5A021]">The 4 Spiritual Pillars</h2>
+              <div className="space-y-6 md:space-y-8">
                 {[{ t: '1. Glorifying God', d: 'Every aesthetic and program element points back to Him.' }, { t: '2. Highlighting His Name', d: 'Making His presence the absolute focal point of the day.' }, { t: '3. God’s Faithfulness', d: 'Space for the congregation to reflect on His provision.' }, { t: '4. Exaltation through History', d: "Acknowledging His hand in GSM's 12-year journey." }].map((p, i) => (
-                  <div key={i} className="border-l-2 border-[#C5A021] pl-6"><h4 className="font-bold uppercase text-xs text-[#C5A021] mb-2">{p.t}</h4><p className="text-gray-300 text-sm leading-relaxed">{p.d}</p></div>
+                  <div key={i} className="border-l-2 border-[#C5A021] pl-4 md:pl-6">
+                    <h4 className="font-bold uppercase text-[10px] md:text-xs text-[#C5A021] mb-1 md:mb-2">{p.t}</h4>
+                    <p className="text-gray-300 text-xs md:text-sm leading-relaxed">{p.d}</p>
+                  </div>
                 ))}
               </div>
             </div>
-            <div className="flex flex-col gap-4">
+
+            {/* Acts Section - Stacks on Mobile */}
+            <div className="flex flex-col gap-3 md:gap-4">
               {visionActs.length > 0 ? visionActs.map(act => (
-                <div key={act.id} className="bg-white p-8 rounded-2xl border shadow-sm border-l-8 border-emerald-900">
-                  <h3 className="font-serif text-xl mb-2 italic text-emerald-900">{act.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{act.desc}</p>
+                <div key={act.id} className="bg-white p-5 md:p-8 rounded-2xl border shadow-sm border-l-[6px] md:border-l-8 border-emerald-900">
+                  <h3 className="font-serif text-lg md:text-xl mb-1 md:mb-2 italic text-emerald-900">{act.title}</h3>
+                  <p className="text-[11px] md:text-sm text-gray-600 leading-relaxed">{act.desc}</p>
                 </div>
               )) : (
-                <>
-                  <div className="bg-white p-8 rounded-2xl border shadow-sm border-l-8 border-emerald-900 font-serif italic text-xl">Rebuild (Act I)</div>
-                  <div className="bg-white p-8 rounded-2xl border shadow-sm border-l-8 border-emerald-600 font-serif italic text-xl">Revive (Act II)</div>
-                  <div className="bg-white p-8 rounded-2xl border shadow-sm border-l-8 border-[#C5A021] font-serif italic text-xl">Reign (Act III)</div>
-                </>
+                <div className="text-center p-10 italic text-gray-400 text-xs">Loading Vision...</div>
               )}
             </div>
           </div>
@@ -394,27 +443,48 @@ export default function ChurchPortal() {
         )}
 
         {activeTab === 'program' && (
-          <div className="bg-white rounded-3xl border shadow-2xl overflow-hidden animate-in">
-            <div className="p-8 bg-emerald-900 text-white flex justify-between items-center"><h3 className="font-serif text-2xl italic">{siteContent.programHeader}</h3><span className="text-xs font-black uppercase tracking-widest text-[#C5A021]">May 29</span></div>
-            <table className="w-full text-left"><tbody className="text-[0.8rem] md:text-sm divide-y">
-              {program.map((row, i) => (<tr key={i} className={row.style}><td className="p-5 font-bold w-32 border-r">{row.time}</td><td className="p-5">{row.activity}</td></tr>))}
-            </tbody></table>
+          <div className="bg-white rounded-2xl md:rounded-3xl border shadow-xl overflow-hidden animate-in">
+            <div className="p-5 md:p-8 bg-emerald-900 text-white flex justify-between items-center">
+              <h3 className="font-serif text-lg md:text-2xl italic">{siteContent.programHeader}</h3>
+            </div>
+            <div className="overflow-x-auto"> {/* Allows side-scrolling if it gets too tight */}
+              <table className="w-full text-left">
+                <tbody className="text-[10px] md:text-sm divide-y divide-gray-50">
+                  {program.map((row, i) => (
+                    <tr key={i} className={row.style}>
+                      <td className="p-3 md:p-5 font-bold w-20 md:w-32 border-r bg-slate-50/50">{row.time}</td>
+                      <td className="p-3 md:p-5 leading-tight md:leading-normal">{row.activity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {activeTab === 'logistics' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in">
-            <div className="bg-white p-8 md:p-10 rounded-3xl border shadow-sm border-t-8 border-emerald-900">
-              <h3 className="font-serif text-3xl text-emerald-900 mb-8 italic underline decoration-[#C5A021]">{siteContent.cateringHeader}</h3>
-              {catering.map((item, i) => (
-                <div key={i} className="flex justify-between p-4 border-b border-gray-50"><span className="font-medium text-gray-700">{item.group}</span><span className="font-bold text-orange-800">{item.dish}</span></div>
-              ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 animate-in">
+            {/* Catering List */}
+            <div className="bg-white p-6 md:p-10 rounded-2xl md:rounded-3xl border shadow-sm border-t-8 border-emerald-900">
+              <h3 className="font-serif text-2xl md:text-3xl text-emerald-900 mb-6 md:mb-8 italic underline decoration-[#C5A021]">
+                {siteContent.cateringHeader}
+              </h3>
+              <div className="space-y-1">
+                {catering.map((item, i) => (
+                  <div key={i} className="flex justify-between items-center p-3 border-b border-gray-50 gap-4">
+                    <span className="font-medium text-[11px] md:text-sm text-gray-700 uppercase tracking-tighter">{item.group}</span>
+                    <span className="font-bold text-[11px] md:text-sm text-orange-800 text-right">{item.dish}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-col gap-6">
+
+            {/* Logistic Cards */}
+            <div className="flex flex-col gap-4 md:gap-6">
               {logisticsCards.map(card => (
-                <div key={card.id} className={`bg-white p-8 rounded-3xl border shadow-sm border-l-8 ${card.color || 'border-emerald-800'}`}>
-                  <h4 className="font-bold text-emerald-900 uppercase text-[10px] mb-3 tracking-widest text-left">{card.title}</h4>
-                  <p className="text-sm leading-relaxed font-sans text-gray-600 whitespace-pre-line">{card.desc}</p>
+                <div key={card.id} className={`bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl border shadow-sm border-l-[6px] md:border-l-8 ${card.color || 'border-emerald-800'}`}>
+                  <h4 className="font-bold text-emerald-900 uppercase text-[9px] md:text-[10px] mb-2 md:mb-3 tracking-widest">{card.title}</h4>
+                  <p className="text-[11px] md:text-sm leading-relaxed font-sans text-gray-600 whitespace-pre-line">{card.desc}</p>
                 </div>
               ))}
             </div>
@@ -422,12 +492,18 @@ export default function ChurchPortal() {
         )}
 
         {activeTab === 'checklist' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {committees.map((comm) => (
-              <div key={comm.id} className={`bg-white p-6 rounded-3xl border-t-8 ${comm.color || 'border-emerald-900'} shadow-lg`}>
-                <h3 className="font-bold text-emerald-900 text-sm uppercase mb-1 tracking-wider">{comm.title}</h3>
-                <p className="text-[0.65rem] text-gray-400 font-bold mb-4 uppercase">{comm.team}</p>
-                {comm.tasks?.map((t, i) => (<div key={i} className="flex gap-3 text-[0.7rem] text-gray-600 bg-gray-50 p-3 mb-2 rounded-xl border">{t}</div>))}
+              <div key={comm.id} className={`bg-white p-5 md:p-6 rounded-2xl md:rounded-3xl border-t-8 ${comm.color || 'border-emerald-900'} shadow-md`}>
+                <h3 className="font-bold text-emerald-900 text-xs md:text-sm uppercase mb-1">{comm.title}</h3>
+                <p className="text-[8px] md:text-[10px] text-gray-400 font-bold mb-3 md:mb-4 uppercase tracking-tighter">{comm.team}</p>
+                <div className="space-y-2">
+                  {comm.tasks?.map((t, i) => (
+                    <div key={i} className="flex gap-2 text-[10px] md:text-[0.75rem] text-gray-600 bg-gray-50 p-2 md:p-3 rounded-xl border border-gray-100 italic">
+                      {t}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
