@@ -18,7 +18,10 @@ export default function ChurchPortal() {
   const [committees, setCommittees] = useState([]);
   const [catering, setCatering] = useState([]);
   const [logisticsCards, setLogisticsCards] = useState([]);
-  const [visionActs, setVisionActs] = useState([]);
+  const [visionActs, setVisionActs] = useState(() => {
+    const saved = localStorage.getItem('gsm_vision_cache');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [mapObjects, setMapObjects] = useState([]);
   const [siteContent, setSiteContent] = useState({
     mainTitle: 'God of Restoration',
@@ -36,7 +39,11 @@ export default function ChurchPortal() {
     onSnapshot(collection(db, 'committees'), (snap) => setCommittees(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     onSnapshot(collection(db, 'catering'), (snap) => setCatering(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     onSnapshot(collection(db, 'logisticsCards'), (snap) => setLogisticsCards(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-    onSnapshot(collection(db, 'visionActs'), (snap) => setVisionActs(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    onSnapshot(collection(db, 'visionActs'), (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setVisionActs(data);
+      localStorage.setItem('gsm_vision_cache', JSON.stringify(data));
+    });
     onSnapshot(collection(db, 'mapObjects'), (snap) => setMapObjects(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, []);
 
