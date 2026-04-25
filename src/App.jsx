@@ -23,13 +23,7 @@ export default function ChurchPortal() {
     return saved ? JSON.parse(saved) : [];
   });
   const [mapObjects, setMapObjects] = useState([]);
-  const [siteContent, setSiteContent] = useState({
-    mainTitle: 'God of Restoration',
-    subTitle: 'REBUILD • REVIVE • REIGN',
-    verse: '"And to the masons, and hewers of stone..." — 2 Kings 12:12',
-    programHeader: 'Minute-by-Minute Program Flow',
-    cateringHeader: '7-Group Catering Matrix'
-  });
+  const [siteContent, setSiteContent] = useState(null);
 
   useEffect(() => {
     if (localStorage.getItem('gsm_admin') === 'true') setIsAdmin(true);
@@ -325,10 +319,25 @@ export default function ChurchPortal() {
   }
 
   // --- 2. PUBLIC SITE VIEW ---
+  if (!siteContent) return (
+    <div className="min-h-screen bg-[#FCFBF4] flex flex-col items-center justify-center gap-4 animate-pulse">
+      {/* Corrected GSM Logo Link */}
+      <img 
+        src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" 
+        alt="GSM Logo" 
+        className="w-16 h-16 md:w-24 md:h-24 object-contain"
+      />
+      
+      {/* Your Branded Typography */}
+      <div className="font-bold text-emerald-900 text-lg md:text-2xl tracking-tighter text-center">
+        GSM <span className="font-light italic text-[#C5A021]">12th Anniversary</span>
+      </div>
+    </div>
+  );
   return (
     <div className="min-h-screen bg-[#FCFBF4] font-sans text-[#2D2D2D] selection:bg-emerald-100">
       <nav className="fixed w-full z-50 bg-white border-b border-gray-200 px-2 md:px-6 h-14 md:h-16 flex items-center shadow-sm">
-        <div className="font-bold text-emerald-900 text-[10px] md:text-xl tracking-tighter w-[20%]">GSM <span className="font-light italic text-[#C5A021]">12th</span></div>
+        <div className="font-bold text-emerald-900 text-[10px] md:text-xl tracking-tighter w-[20%]">GSM <span className="font-light italic text-[#C5A021]">12th Anniversary</span></div>
         <div className="flex justify-between items-center w-[80%] pr-1 md:pr-0">
           {['vision', 'floor', 'program', 'logistics', 'checklist'].map(t => (
             <button key={t} onClick={() => setActiveTab(t)} className={`text-[6.5px] md:text-[0.7rem] font-bold uppercase tracking-[0.1em] border-b-2 py-1 whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-gray-400'}`}>{t === 'checklist' ? 'Committees' : t}</button>
