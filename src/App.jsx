@@ -13,7 +13,7 @@ export default function ChurchPortal() {
   const [view, setView] = useState('public');
   const [activeTab, setActiveTab] = useState('vision');
   const [adminActiveTab, setAdminActiveTab] = useState('settings');
-  const [isBanquet, setIsBanquet] = useState(false);
+  const [activeProgramId, setActiveProgramId] = useState(null); const [isBanquet, setIsBanquet] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPasscodeModal, setShowPasscodeModal] = useState(false);
   const [passcodeInput, setPasscodeInput] = useState('');
@@ -72,9 +72,9 @@ export default function ChurchPortal() {
               setTimeout(() => { document.getElementById(`edit-${obj.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
             }}
             className={`absolute flex items-center justify-center transition-all cursor-pointer ${obj.type === 'room' ? 'border border-black bg-black/5 font-bold uppercase' :
-                obj.type === 'block' ? 'bg-emerald-100/10 border border-emerald-900/10' :
-                  obj.type === 'icon' ? 'bg-blue-500 rounded-full border border-white shadow-sm' :
-                    'bg-orange-400 border border-orange-600 shadow-sm'
+              obj.type === 'block' ? 'bg-emerald-100/10 border border-emerald-900/10' :
+                obj.type === 'icon' ? 'bg-blue-500 rounded-full border border-white shadow-sm' :
+                  'bg-orange-400 border border-orange-600 shadow-sm'
               }`}
             style={{ left: `${obj.x}%`, top: `${obj.y}%`, width: `${obj.w}%`, height: `${obj.h}%`, zIndex: obj.z || 10 }}
           >
@@ -213,20 +213,60 @@ export default function ChurchPortal() {
               </div>
             )}
             {adminActiveTab === 'program' && (
-              <div className="space-y-6">
-                <div className="bg-slate-50 p-4 rounded-xl border mb-6">
-                  <label className="text-[9px] font-black text-slate-400 uppercase">Program Title</label>
-                  <input className="w-full p-2 border rounded mt-1 font-serif italic" defaultValue={siteContent?.programHeader} onBlur={(e) => updateSite({ programHeader: e.target.value })} />
-                </div>
-                <div className="flex justify-between items-center"><h3 className="font-bold text-emerald-900 text-xs uppercase">Schedule</h3><button onClick={() => addItem('program', { time: '00:00', activity: 'New Task', remarks: '' })} className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-4 py-2 rounded-full">+ ADD SLOT</button></div>
-                {program.map(item => (
-                  <div key={item.id} className="flex flex-col md:flex-row gap-2 border-b pb-4">
-                    <input className="w-full md:w-24 text-[10px] font-bold p-2 border rounded" defaultValue={item.time} onBlur={(e) => updateField('program', item.id, { time: e.target.value })} />
-                    <input className="flex-1 text-[10px] p-2 border rounded" defaultValue={item.activity} onBlur={(e) => updateField('program', item.id, { activity: e.target.value })} />
-                    <input className="flex-1 text-[10px] p-2 border rounded bg-emerald-50/20" placeholder="Remarks" defaultValue={item.remarks} onBlur={(e) => updateField('program', item.id, { remarks: e.target.value })} />
-                    <button onClick={() => removeItem('program', item.id, 'slot')} className="text-red-400 px-2 text-xl">×</button>
+              <div className="space-y-10">
+                <div className="bg-slate-50 p-4 rounded-3xl border shadow-inner">
+                  <div className="flex justify-between items-center mb-4 px-2">
+                    <h3 className="font-bold text-emerald-900 text-[10px] uppercase tracking-widest">Program Overview</h3>
+                    <button onClick={() => addItem('program', { time: '00:00', activity: 'New Segment', remarks: '', description: '' })} className="text-emerald-700 font-bold text-[9px] bg-emerald-50 px-4 py-1.5 rounded-full">+ ADD SLOT</button>
                   </div>
-                ))}
+
+                  <div className="space-y-3">
+                    {program.map(item => (
+                      <div key={item.id} className="bg-white p-3 rounded-2xl border shadow-sm space-y-3 relative group">
+                        <button onClick={() => removeItem('program', item.id, 'slot')} className="absolute top-2 right-2 text-red-200 hover:text-red-400">×</button>
+
+                        <div className="grid grid-cols-12 gap-3">
+                          <div className="col-span-4 md:col-span-2">
+                            <label className="text-[7px] font-black text-slate-300 uppercase">Time</label>
+                            <input className="w-full p-1.5 text-[10px] font-bold border rounded-lg bg-slate-50" defaultValue={item.time} onBlur={(e) => updateField('program', item.id, { time: e.target.value })} />
+                          </div>
+                          <div className="col-span-8 md:col-span-10">
+                            <label className="text-[7px] font-black text-slate-300 uppercase">Activity Name</label>
+                            <input className="w-full p-1.5 text-[10px] font-bold border rounded-lg" defaultValue={item.activity} onBlur={(e) => updateField('program', item.id, { activity: e.target.value })} />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[7px] font-black text-slate-300 uppercase">In-Charge / Remarks</label>
+                            <input className="w-full p-1.5 text-[10px] border rounded-lg italic" placeholder="Who is leading this?" defaultValue={item.remarks} onBlur={(e) => updateField('program', item.id, { remarks: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="text-[7px] font-black text-slate-300 uppercase">Full Description (Expandable)</label>
+                            <textarea className="w-full p-1.5 text-[10px] border rounded-lg h-12" placeholder="Add details for the expanded view..." defaultValue={item.description} onBlur={(e) => updateField('program', item.id, { description: e.target.value })} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* NEW: Program Cards Admin Section */}
+                <div className="bg-slate-50 p-4 rounded-3xl border border-l-8 border-[#C5A021]">
+                  <div className="flex justify-between items-center mb-4 px-2">
+                    <h3 className="font-bold text-emerald-900 text-[10px] uppercase tracking-widest">Program Notes Cards</h3>
+                    <button onClick={() => addItem('logisticsCards', { title: 'New Note', desc: '', category: 'program' })} className="text-emerald-700 font-bold text-[9px] bg-emerald-50 px-4 py-1.5 rounded-full">+ ADD NOTE CARD</button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {logisticsCards.filter(c => c.category === 'program').map(card => (
+                      <div key={card.id} className="p-3 bg-white border rounded-2xl relative shadow-sm">
+                        <button onClick={() => removeItem('logisticsCards', card.id, 'card')} className="absolute top-2 right-2 text-red-200">×</button>
+                        <input className="font-bold uppercase text-[10px] text-emerald-900 w-full mb-2 border-b border-dashed outline-none" defaultValue={card.title} onBlur={(e) => updateField('logisticsCards', card.id, { title: e.target.value })} />
+                        <textarea className="w-full text-[10px] text-slate-600 bg-slate-50 p-2 rounded-xl h-24" defaultValue={card.desc} onBlur={(e) => updateField('logisticsCards', card.id, { desc: e.target.value })} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
             {adminActiveTab === 'committees' && (
@@ -414,24 +454,95 @@ export default function ChurchPortal() {
         )}
 
         {activeTab === 'program' && (
-          <div className="bg-white rounded-2xl md:rounded-3xl border shadow-xl overflow-hidden animate-in">
-            <div className="p-5 md:p-8 bg-emerald-900 text-white"><h3 className="font-serif text-lg md:text-2xl italic">{siteContent.programHeader}</h3></div>
-            <div className="overflow-x-auto"><table className="w-full text-left">
-              <thead><tr className="text-[8px] md:text-[10px] uppercase tracking-widest text-slate-400 bg-slate-50 border-b"><th className="p-3 md:p-5 font-black">Time</th><th className="p-3 md:p-5 font-black">Activity</th><th className="p-3 md:p-5 font-black">Remarks</th></tr></thead>
-              <tbody className="text-[10px] md:text-sm divide-y">
-                {program.map((row, i) => (<tr key={i} className="hover:bg-slate-50/50 transition-colors"><td className="p-3 md:p-5 font-bold w-20 md:w-32 border-r bg-slate-50/20">{row.time}</td><td className="p-3 md:p-5 font-medium">{row.activity}</td><td className="p-3 md:p-5 italic text-emerald-800 bg-emerald-50/10">{row.remarks}</td></tr>))}
-              </tbody></table></div>
+          <div className="space-y-6 animate-in">
+            <div className="bg-white rounded-2xl md:rounded-3xl border shadow-xl overflow-hidden">
+              <div className="p-4 md:p-6 bg-emerald-900 text-white flex justify-between items-center">
+                <h3 className="font-serif text-lg md:text-xl italic">{siteContent.programHeader}</h3>
+                <span className="text-[8px] uppercase tracking-widest opacity-60">Tap for details</span>
+              </div>
+
+              <div className="divide-y divide-gray-100">
+                {program.map((row, i) => {
+                  const isExpanded = activeProgramId === row.id;
+                  return (
+                    <div key={i} className="transition-all">
+                      {/* Main Row */}
+                      <div
+                        onClick={() => setActiveProgramId(isExpanded ? null : row.id)}
+                        className={`flex items-start md:items-center p-3 md:p-4 cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-emerald-50/40' : ''}`}
+                      >
+                        {/* Time Column */}
+                        <div className="w-14 md:w-24 shrink-0 font-bold text-[10px] md:text-xs text-emerald-800 pt-0.5 md:pt-0">
+                          {row.time}
+                        </div>
+
+                        {/* Activity & Remarks Column */}
+                        <div className="flex-1 min-w-0 pr-2">
+                          <div className="font-bold text-[11px] md:text-sm text-slate-700 leading-tight">
+                            {row.activity}
+                          </div>
+                          {/* REMARKS RESTORED HERE: Visible immediately under the title */}
+                          {row.remarks && (
+                            <div className="text-[9px] md:text-[11px] text-emerald-700 font-medium italic mt-0.5">
+                              {row.remarks}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Arrow Icon */}
+                        <div className={`shrink-0 transition-transform duration-300 mt-1 md:mt-0 ${isExpanded ? 'rotate-180' : ''}`}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><path d="m6 9 6 6 6-6" /></svg>
+                        </div>
+                      </div>
+
+                      {/* Expandable Description only */}
+                      {isExpanded && row.description && (
+                        <div className="px-4 pb-4 bg-emerald-50/40 animate-in slide-in-from-top-1">
+                          <div className="pl-14 md:pl-24">
+                            <div className="h-[1px] bg-emerald-100 mb-3 w-12" />
+                            <p className="text-[10px] md:text-xs text-slate-500 leading-relaxed max-w-xl">
+                              {row.description}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Host/Note Cards stay at the bottom */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {logisticsCards.filter(c => c.category === 'program').map(card => (
+                <div key={card.id} className="bg-white p-5 rounded-2xl border shadow-sm border-t-4 border-[#C5A021]">
+                  <h4 className="font-bold text-emerald-900 uppercase text-[9px] mb-2 tracking-widest">{card.title}</h4>
+                  <p className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-line">{card.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {activeTab === 'logistics' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in">
+            {/* Catering Section stays the same */}
             <div className="bg-white p-6 md:p-10 rounded-2xl border shadow-sm border-t-8 border-emerald-900">
               <h3 className="font-serif text-2xl md:text-3xl text-emerald-900 mb-6 italic underline decoration-[#C5A021]">{siteContent.cateringHeader}</h3>
               <div className="space-y-1">{catering.map((item, i) => (<div key={i} className="flex justify-between items-center p-3 border-b border-gray-50 gap-4"><span className="font-medium text-[11px] md:text-sm text-gray-700 uppercase">{item.group}</span><span className="font-bold text-[11px] md:text-sm text-orange-800">{item.dish}</span></div>))}</div>
             </div>
+
+            {/* UPDATED: Logistics Cards with Filter */}
             <div className="flex flex-col gap-4">
-              {logisticsCards.map(card => (<div key={card.id} className={`bg-white p-6 md:p-8 rounded-2xl border shadow-sm border-l-[6px] ${card.color || 'border-emerald-800'}`}><h4 className="font-bold text-emerald-900 uppercase text-[9px] mb-2">{card.title}</h4><p className="text-[11px] md:text-sm leading-relaxed text-gray-600 whitespace-pre-line">{card.desc}</p></div>))}
+              {logisticsCards
+                .filter(card => card.category !== 'program') // <--- ADD THIS LINE
+                .map(card => (
+                  <div key={card.id} className={`bg-white p-6 md:p-8 rounded-2xl border shadow-sm border-l-[6px] ${card.color || 'border-emerald-800'}`}>
+                    <h4 className="font-bold text-emerald-900 uppercase text-[9px] mb-2">{card.title}</h4>
+                    <p className="text-[11px] md:text-sm leading-relaxed text-gray-600 whitespace-pre-line">{card.desc}</p>
+                  </div>
+                ))
+              }
             </div>
           </div>
         )}
