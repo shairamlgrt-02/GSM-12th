@@ -17,6 +17,13 @@ export default function ChurchPortal() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPasscodeModal, setShowPasscodeModal] = useState(false);
   const [passcodeInput, setPasscodeInput] = useState('');
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      setIsAdmin(false);
+      setView('public');
+      localStorage.removeItem('gsm_admin');
+    }
+  };
 
   const SECRET_CODE = 'GSM2026';
 
@@ -87,8 +94,28 @@ export default function ChurchPortal() {
     return (
       <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
         <nav className="bg-white border-b p-4 sticky top-0 z-[100] flex justify-between items-center shadow-sm">
-          <h1 className="font-serif italic font-bold text-emerald-900 text-xl">GSM Master Backend</h1>
-          <button onClick={() => setView('public')} className="text-[10px] font-bold uppercase px-6 py-2 bg-emerald-900 text-white rounded-full">Return to Site</button>
+          <div className="flex items-center gap-4">
+            <h1 className="font-serif italic font-bold text-emerald-900 text-xl">GSM Master Backend</h1>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Return to Site Button */}
+            <button
+              onClick={() => setView('public')}
+              className="text-[9px] md:text-[10px] font-bold uppercase px-4 md:px-6 py-2 border border-emerald-900 text-emerald-900 rounded-full hover:bg-emerald-50 transition-all"
+            >
+              View Site
+            </button>
+
+            {/* New Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="text-[9px] md:text-[10px] font-bold uppercase px-4 md:px-6 py-2 bg-red-50 text-red-600 rounded-full border border-red-100 hover:bg-red-100 transition-all flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <span className="hidden md:inline">Logout</span>
+            </button>
+          </div>
         </nav>
         <main className="max-w-7xl mx-auto p-6 md:p-10">
           <div className="flex gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar">
@@ -259,7 +286,7 @@ export default function ChurchPortal() {
         </div>
 
         {/* Center: Tabs */}
-        <div className="flex justify-center items-center flex-1 gap-2 md:gap-6">
+        <div className="flex justify-center items-center flex-1 gap-1 md:gap-6">
           {['vision', 'floor', 'program', 'logistics', 'checklist'].map(t => (
             <button
               key={t}
@@ -272,13 +299,23 @@ export default function ChurchPortal() {
           ))}
         </div>
 
-        {/* Right: Quick Access Dashboard/Login */}
-        <div className="w-[15%] flex justify-end">
+        {/* Right: Icon-based Access */}
+        <div className="w-[20%] flex justify-end">
           <button
             onClick={() => isAdmin ? setView('admin') : setShowPasscodeModal(true)}
-            className="bg-emerald-50 text-emerald-900 px-3 py-1.5 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-widest border border-emerald-100 active:scale-95 transition-all shadow-sm"
+            className="bg-emerald-50 text-emerald-900 px-2 md:px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-emerald-100 active:scale-95 transition-all shadow-sm"
           >
-            {isAdmin ? 'DASH' : 'ADM'}
+            {isAdmin ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Dash</span>
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Log In</span>
+              </>
+            )}
           </button>
         </div>
       </nav>
