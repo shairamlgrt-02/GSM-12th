@@ -62,24 +62,40 @@ export default function ChurchPortal() {
 
   const MapRenderer = ({ mode }) => {
     return (
-      <div className="relative w-full aspect-[1.4/1] border-[4px] border-[#2D2D2D] bg-white overflow-hidden rounded-sm shadow-xl mx-auto max-w-[950px]">
+      /* We reduced the max-width and changed the aspect ratio to make it shorter */
+      <div className="relative w-full aspect-[1.8/1] md:aspect-[2.2/1] border-[3px] border-[#2D2D2D] bg-white overflow-hidden rounded-lg shadow-lg mx-auto max-w-[700px]">
         {mapObjects.filter(obj => mode === 'banquet' ? obj.showInBanquet : obj.showInService).map(obj => (
           <div
             key={obj.id}
-            onDoubleClick={() => { setAdminActiveTab('floor'); setTimeout(() => { document.getElementById(`edit-${obj.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100); }}
-            className={`absolute flex items-center justify-center transition-all cursor-pointer ${obj.type === 'room' ? 'border-[1.5px] border-black bg-black/5 font-bold uppercase' : obj.type === 'block' ? 'bg-emerald-100/10 border border-emerald-900/10' : obj.type === 'icon' ? 'bg-blue-500 rounded-full border border-white shadow-sm' : 'bg-orange-400 border border-orange-600 shadow-sm'}`}
+            onDoubleClick={() => {
+              setAdminActiveTab('floor');
+              setTimeout(() => { document.getElementById(`edit-${obj.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+            }}
+            className={`absolute flex items-center justify-center transition-all cursor-pointer ${obj.type === 'room' ? 'border border-black bg-black/5 font-bold uppercase' :
+                obj.type === 'block' ? 'bg-emerald-100/10 border border-emerald-900/10' :
+                  obj.type === 'icon' ? 'bg-blue-500 rounded-full border border-white shadow-sm' :
+                    'bg-orange-400 border border-orange-600 shadow-sm'
+              }`}
             style={{ left: `${obj.x}%`, top: `${obj.y}%`, width: `${obj.w}%`, height: `${obj.h}%`, zIndex: obj.z || 10 }}
           >
-            {obj.label && <span className="pointer-events-none px-0.5 text-center leading-none z-50 text-black text-[6px] font-black tracking-tighter">{obj.label}</span>}
+            {obj.label && (
+              <span className="pointer-events-none px-0.5 text-center leading-none z-50 text-black text-[5px] md:text-[8px] font-black tracking-tighter">
+                {obj.label}
+              </span>
+            )}
+
             {obj.type === 'block' && (
               <div className="absolute inset-0 p-1 gap-1 grid" style={{ gridTemplateColumns: `repeat(${obj.cols || 4}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${obj.rows || 6}, minmax(0, 1fr))` }}>
                 {Array.from({ length: (obj.rows || 6) * (obj.cols || 4) }).map((_, i) => (
-                  <div key={i} className="w-1 h-1 bg-emerald-600 rounded-full opacity-60 mx-auto" />
+                  <div key={i} className="w-0.5 h-0.5 md:w-1 md:h-1 bg-emerald-600 rounded-full opacity-40 mx-auto" />
                 ))}
               </div>
             )}
           </div>
         ))}
+        {/* Subtle watermarks for hall labels */}
+        <div className="absolute font-black text-[8px] uppercase opacity-5 text-emerald-900 pointer-events-none" style={{ top: '40%', left: '38%' }}>Main Hall</div>
+        <div className="absolute font-black text-[8px] uppercase opacity-5 text-emerald-900 rotate-90 pointer-events-none" style={{ top: '35%', left: '76%' }}>Front Hall</div>
       </div>
     );
   };
