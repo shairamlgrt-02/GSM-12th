@@ -268,7 +268,13 @@ export default function ChurchPortal() {
 
             {adminActiveTab === 'committees' && (
               <div className="space-y-8">
-                <button onClick={() => addItem('committees', { title: 'New Committee', team: 'TBD', color: 'border-emerald-900', tasks: ['Task 1'] })} className="w-full border-2 border-dashed p-6 text-slate-400 rounded-2xl uppercase font-bold text-[10px]">+ ADD COMMITTEE CARD</button>
+                <button onClick={() => addItem('committees', {
+                  title: 'New Committee',
+                  team: 'TBD',
+                  color: 'border-emerald-900',
+                  tasks: [{ text: 'First Task', completed: false }]
+                })}
+                  className="w-full border-2 border-dashed p-6 text-slate-400 rounded-2xl uppercase font-bold text-[10px]">+ ADD COMMITTEE CARD</button>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {committees.map(comm => (
                     <div key={comm.id} className="p-6 bg-slate-50 rounded-2xl border relative">
@@ -276,9 +282,17 @@ export default function ChurchPortal() {
                       <input className="font-bold uppercase text-xs w-full bg-transparent border-b border-dashed mb-2" defaultValue={comm.title} onBlur={(e) => updateField('committees', comm.id, { title: e.target.value })} />
                       <input className="text-[10px] text-slate-400 w-full mb-4 bg-transparent italic" defaultValue={comm.team} onBlur={(e) => updateField('committees', comm.id, { team: e.target.value })} />
                       {comm.tasks?.map((t, i) => (
-                        <textarea key={i} className="w-full text-[10px] p-2 rounded border mb-2 h-14 bg-white" defaultValue={t} onBlur={(e) => {
-                          let ts = [...comm.tasks]; ts[i] = e.target.value; updateField('committees', comm.id, { tasks: ts });
-                        }} />
+                        <textarea
+                          key={i}
+                          className="w-full text-[10px] p-2 rounded border mb-2 h-14 bg-white"
+                          defaultValue={t.text || t} // Handles both old string data and new object data
+                          onBlur={(e) => {
+                            let ts = [...comm.tasks];
+                            if (typeof ts[i] === 'string') ts[i] = { text: e.target.value, completed: false };
+                            else ts[i].text = e.target.value;
+                            updateField('committees', comm.id, { tasks: ts });
+                          }}
+                        />
                       ))}
                     </div>
                   ))}
@@ -322,12 +336,12 @@ export default function ChurchPortal() {
   if (!siteContent) return (
     <div className="min-h-screen bg-[#FCFBF4] flex flex-col items-center justify-center gap-4 animate-pulse">
       {/* Corrected GSM Logo Link */}
-      <img 
-        src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" 
-        alt="GSM Logo" 
+      <img
+        src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png"
+        alt="GSM Logo"
         className="w-16 h-16 md:w-24 md:h-24 object-contain"
       />
-      
+
       {/* Your Branded Typography */}
       <div className="font-bold text-emerald-900 text-lg md:text-2xl tracking-tighter text-center">
         GSM <span className="font-light italic text-[#C5A021]">12th Anniversary</span>
@@ -508,20 +522,59 @@ export default function ChurchPortal() {
         )}
 
         {activeTab === 'checklist' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {committees.map((comm) => (
-              <div key={comm.id} className={`bg-white p-5 md:p-6 rounded-2xl md:rounded-3xl border-t-8 ${comm.color || 'border-emerald-900'} shadow-md`}>
-                <h3 className="font-bold text-emerald-900 text-xs md:text-sm uppercase mb-1">{comm.title}</h3>
-                <p className="text-[8px] md:text-[10px] text-gray-400 font-bold mb-3 md:mb-4 uppercase tracking-tighter">{comm.team}</p>
-                <div className="space-y-2">
-                  {comm.tasks?.map((t, i) => (
-                    <div key={i} className="flex gap-2 text-[10px] md:text-[0.75rem] text-gray-600 bg-gray-50 p-2 md:p-3 rounded-xl border border-gray-100 italic">
-                      {t}
-                    </div>
-                  ))}
-                </div>
+          <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Global Progress Section */}
+            <div className="bg-white p-6 rounded-3xl border shadow-sm">
+              <div className="flex justify-between items-end mb-2">
+                <h3 className="font-black text-emerald-900 text-[10px] uppercase tracking-widest">Event Readiness</h3>
+                <span className="font-serif italic text-emerald-900 text-lg">
+                  {Math.round((committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) /
+                    committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 1)) * 100)}%
+                </span>
               </div>
-            ))}
+              <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border">
+                <div
+                  className="h-full bg-emerald-600 transition-all duration-1000 ease-out"
+                  style={{ width: `${(committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Committee Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {committees.map((comm) => (
+                <div key={comm.id} className={`bg-white p-5 md:p-6 rounded-3xl border-t-8 ${comm.color || 'border-emerald-900'} shadow-md`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-bold text-emerald-900 text-xs md:text-sm uppercase leading-tight">{comm.title}</h3>
+                      <p className="text-[8px] md:text-[10px] text-gray-400 font-bold uppercase">{comm.team}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {comm.tasks?.map((t, i) => (
+                      <label
+                        key={i}
+                        className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${t.completed ? 'bg-slate-50 border-transparent opacity-60' : 'bg-white border-gray-100 hover:border-emerald-200'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1 accent-emerald-600"
+                          checked={t.completed || false}
+                          onChange={async () => {
+                            const newTasks = [...comm.tasks];
+                            newTasks[i].completed = !newTasks[i].completed;
+                            await updateField('committees', comm.id, { tasks: newTasks });
+                          }}
+                        />
+                        <span className={`text-[11px] md:text-xs leading-tight ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                          {t.text || t}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
