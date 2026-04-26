@@ -252,12 +252,34 @@ export default function ChurchPortal() {
 
   return (
     <div className="min-h-screen bg-[#FCFBF4] font-sans text-[#2D2D2D]">
-      <nav className="fixed w-full z-50 bg-white border-b px-2 md:px-6 h-14 md:h-16 flex items-center shadow-sm">
-        <div className="font-bold text-emerald-900 text-[10px] md:text-xl tracking-tighter w-[20%]">GSM <span className="font-light italic text-[#C5A021]">12th Anniversary</span></div>
-        <div className="flex justify-between items-center w-[80%]">
+      <nav className="fixed w-full z-50 bg-white border-b border-gray-200 px-3 md:px-6 h-14 md:h-16 flex items-center shadow-sm">
+        {/* Left: Branding */}
+        <div className="font-bold text-emerald-900 text-[10px] md:text-xl tracking-tighter w-[20%]">
+          GSM <span className="font-light italic text-[#C5A021] hidden md:inline">12th Anniversary</span>
+        </div>
+
+        {/* Center: Tabs */}
+        <div className="flex justify-center items-center flex-1 gap-2 md:gap-6">
           {['vision', 'floor', 'program', 'logistics', 'checklist'].map(t => (
-            <button key={t} onClick={() => setActiveTab(t)} className={`text-[6.5px] md:text-[0.7rem] font-bold uppercase tracking-[0.1em] border-b-2 py-1 ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-gray-400'}`}>{t === 'checklist' ? 'Committees' : t}</button>
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`text-[7px] md:text-[0.7rem] font-bold uppercase tracking-[0.1em] border-b-2 py-1 whitespace-nowrap transition-all ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-gray-400'
+                }`}
+            >
+              {t === 'checklist' ? 'Committees' : t}
+            </button>
           ))}
+        </div>
+
+        {/* Right: Quick Access Dashboard/Login */}
+        <div className="w-[15%] flex justify-end">
+          <button
+            onClick={() => isAdmin ? setView('admin') : setShowPasscodeModal(true)}
+            className="bg-emerald-50 text-emerald-900 px-3 py-1.5 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-widest border border-emerald-100 active:scale-95 transition-all shadow-sm"
+          >
+            {isAdmin ? 'DASH' : 'ADM'}
+          </button>
         </div>
       </nav>
       <main className="pt-24 px-6 max-w-7xl mx-auto pb-20">
@@ -287,16 +309,53 @@ export default function ChurchPortal() {
 
         {activeTab === 'floor' && (
           <div className="animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
-              <h3 className="font-bold text-emerald-900 uppercase text-xs tracking-widest italic">{siteContent.mapHeader}</h3>
-              <button onClick={() => setIsBanquet(!isBanquet)} className="bg-emerald-900 text-white px-8 py-3 rounded-xl text-[10px] font-bold uppercase shadow-lg active:scale-95 transition-all">{isBanquet ? 'To Service' : 'To Banquet'}</button>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+              <h3 className="font-bold text-emerald-900 uppercase text-[10px] tracking-widest italic">
+                {siteContent.mapHeader || 'Floor Plan Architect v5.1'}
+              </h3>
+              <button onClick={() => setIsBanquet(!isBanquet)} className="bg-emerald-900 text-white px-6 py-2 rounded-xl text-[10px] font-bold uppercase shadow-md active:scale-95 transition-all">
+                {isBanquet ? 'To Service' : 'To Banquet'}
+              </button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-              <div className="bg-white border-[1.5px] border-black rounded-[2rem] p-4 flex flex-col items-center justify-center gap-2 shadow-sm"><div className="w-8 h-5 border-2 border-black bg-white" /><span className="text-[10px] font-black uppercase text-emerald-900">{siteContent.legendRooms || 'Rooms'}</span></div>
-              <div className="bg-white border-[1.5px] border-black rounded-[2rem] p-4 flex flex-col items-center justify-center gap-2 shadow-sm"><div className="flex gap-1.5"><div className="w-2 h-2 bg-emerald-500 rounded-full" /><div className="w-2 h-2 bg-emerald-500 rounded-full" /><div className="w-2 h-2 bg-emerald-500 rounded-full" /></div><span className="text-[10px] font-black uppercase text-emerald-900">{siteContent.legendSeating || 'Chairs'}</span></div>
-              <div className="bg-white border-[1.5px] border-black rounded-[2rem] p-4 flex flex-col items-center justify-center gap-2 shadow-sm"><div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white" /><span className="text-[10px] font-black uppercase text-emerald-900">{siteContent.legendEntry || 'Box'}</span></div>
-              <div className="bg-white border-[1.5px] border-black rounded-[2rem] p-4 flex flex-col items-center justify-center gap-2 shadow-sm"><div className="w-8 h-5 bg-orange-400 border border-orange-600" /><span className="text-[10px] font-black uppercase text-emerald-900">{siteContent.legendBanquet || 'Tables'}</span></div>
+
+            {/* MINIMALIST ONE-LINE LEGEND */}
+            <div className="flex justify-between items-center bg-white/50 backdrop-blur-sm rounded-xl p-3 mb-6 border border-gray-100">
+              {/* Rooms */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-3.5 h-2.5 border border-black bg-white" />
+                <span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900 tracking-tighter">
+                  {siteContent.legendRooms || 'Rooms'}
+                </span>
+              </div>
+
+              {/* Chairs */}
+              <div className="flex items-center gap-1.5">
+                <div className="flex gap-0.5">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                </div>
+                <span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900 tracking-tighter">
+                  {siteContent.legendSeating || 'Chairs'}
+                </span>
+              </div>
+
+              {/* Box */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 bg-blue-500 rounded-full border border-white shadow-sm" />
+                <span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900 tracking-tighter">
+                  {siteContent.legendEntry || 'Box'}
+                </span>
+              </div>
+
+              {/* Tables */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-3.5 h-2.5 bg-orange-400 border border-orange-600" />
+                <span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900 tracking-tighter">
+                  {siteContent.legendBanquet || 'Tables'}
+                </span>
+              </div>
             </div>
+
             <MapRenderer mode={isBanquet ? 'banquet' : 'service'} />
           </div>
         )}
@@ -358,9 +417,10 @@ export default function ChurchPortal() {
             </div>
           </div>
         )}
-        <footer className="mt-20 border-t pt-10 text-center flex flex-col items-center gap-4">
-          {isAdmin && <button onClick={() => { setView('admin'); setAdminActiveTab('settings'); }} className="text-emerald-800 font-bold uppercase text-[10px] bg-emerald-50 px-8 py-3 rounded-full border border-emerald-100 shadow-sm active:scale-95 transition-all">Open Master Dashboard</button>}
-          <button onClick={() => setShowPasscodeModal(true)} className="text-gray-100"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></button>
+        <footer className="mt-20 border-t pt-10 pb-10 text-center">
+          <div className="opacity-20 grayscale hover:opacity-50 transition-opacity">
+            <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="GSM" className="w-8 mx-auto" />
+          </div>
         </footer>
         {showPasscodeModal && (
           <div className="fixed inset-0 z-[1000] bg-emerald-900/95 flex items-center justify-center p-6 backdrop-blur-md">
