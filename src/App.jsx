@@ -562,7 +562,16 @@ export default function ChurchPortal() {
                           checked={t.completed || false}
                           onChange={async () => {
                             const newTasks = [...comm.tasks];
-                            newTasks[i].completed = !newTasks[i].completed;
+
+                            // Check if the task is just a string (old data) or an object (new data)
+                            if (typeof newTasks[i] === 'string') {
+                              // Convert old string to the new checklist format and toggle it
+                              newTasks[i] = { text: newTasks[i], completed: true };
+                            } else {
+                              // It's already an object, so just flip the true/false
+                              newTasks[i] = { ...newTasks[i], completed: !newTasks[i].completed };
+                            }
+
                             await updateField('committees', comm.id, { tasks: newTasks });
                           }}
                         />
