@@ -557,14 +557,15 @@ export default function ChurchPortal() {
           </div>
         </div>
 
-        {/* BOTTOM ROW: Navigation Menu (Clean & Snug) */}
+        {/* BOTTOM ROW: Navigation Menu (Snug on Web & Mobile) */}
         <div className="bg-[#F4F1E8] border-b border-gray-200">
-          <div className="flex justify-around items-center h-10 px-2 max-w-full overflow-x-auto no-scrollbar scrollbar-hide">
+          {/* Adding max-w-2xl and mx-auto keeps the tabs grouped together in the center on Web */}
+          <div className="flex justify-between md:justify-center items-center h-10 px-4 md:gap-12 max-w-2xl mx-auto overflow-x-auto no-scrollbar scrollbar-hide">
             {['vision', 'floor', 'program', 'logistics', 'committees'].map(t => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
-                className={`text-[8px] md:text-[10px] font-black uppercase tracking-tighter transition-all px-1 h-full border-b-2 flex items-center ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'
+                className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight transition-all px-2 h-full border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'
                   }`}
               >
                 {t}
