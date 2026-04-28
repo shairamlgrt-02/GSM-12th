@@ -400,8 +400,8 @@ export default function ChurchPortal() {
                             }
                           }}
                           className={`px-3 py-1 rounded-full text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all border ${hasImage
-                              ? 'bg-transparent border-white text-white hover:bg-white hover:text-emerald-900'
-                              : 'bg-emerald-900 border-emerald-900 text-white hover:bg-emerald-800'
+                            ? 'bg-transparent border-white text-white hover:bg-white hover:text-emerald-900'
+                            : 'bg-emerald-900 border-emerald-900 text-white hover:bg-emerald-800'
                             }`}
                         >
                           {item.ctaText}
@@ -557,9 +557,17 @@ export default function ChurchPortal() {
 
                           <input
                             className="flex-1 text-[10px] text-slate-400 bg-transparent border-none outline-none italic truncate min-w-[100px]"
-                            placeholder={block.type === 'countdown' ? "YYYY-MM-DD HH:mm:ss" : "URL or Text Content..."}
-                            defaultValue={block.type === 'countdown' ? block.content : (block.imageUrl || block.content)}
-                            onBlur={(e) => updateField('homeBlocks', block.id, (block.type === 'text' || block.type === 'countdown') ? { content: e.target.value } : { imageUrl: e.target.value })}
+                            placeholder={block.type === 'grid' ? "Main Grid Image (Optional)..." : "URL or Content..."}
+                            defaultValue={block.imageUrl || block.content || ""}
+                            onBlur={(e) => {
+                              const val = e.target.value;
+                              // For grids, we explicitly save to imageUrl
+                              if (block.type === 'grid') {
+                                updateField('homeBlocks', block.id, { imageUrl: val });
+                              } else {
+                                updateField('homeBlocks', block.id, (block.type === 'text' || block.type === 'countdown') ? { content: val } : { imageUrl: val });
+                              }
+                            }}
                           />
 
                           <select
