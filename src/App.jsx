@@ -11,8 +11,8 @@ const isOverdue = (dateStr) => {
 
 export default function ChurchPortal() {
   const [view, setView] = useState('public');
-  const [activeTab, setActiveTab] = useState('vision');
-  const [adminActiveTab, setAdminActiveTab] = useState('settings');
+  const [activeTab, setActiveTab] = useState('home');
+  const [adminActiveTab, setAdminActiveTab] = useState('home');
   const [activeProgramId, setActiveProgramId] = useState(null);
   const [isBanquet, setIsBanquet] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -159,6 +159,8 @@ export default function ChurchPortal() {
       title: type.toUpperCase() + ' SECTION',
       content: '',
       imageUrl: '',
+      linkTo: '', // For navigation (e.g., 'register', 'program')
+      items: [], // For grids and slideshows
       isActive: true
     });
   };
@@ -201,6 +203,69 @@ export default function ChurchPortal() {
     </div>
   );
 
+  const HomeBlockRenderer = ({ block }) => {
+    const handleLink = () => {
+      if (block.linkTo) setActiveTab(block.linkTo);
+    };
+
+    const commonClasses = `${block.linkTo ? 'cursor-pointer hover:opacity-95 transition-all' : ''} mb-8 animate-in fade-in duration-700`;
+
+    switch (block.type) {
+      case 'hero':
+        return (
+          <div onClick={handleLink} className={`${commonClasses} relative rounded-3xl overflow-hidden shadow-2xl group`}>
+            <img src={block.imageUrl} alt="Hero" className="w-full aspect-[16/9] md:aspect-[21/9] object-cover group-hover:scale-105 transition-transform duration-1000" />
+            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-transparent flex items-end p-8">
+              <h2 className="text-white font-serif italic text-2xl md:text-5xl tracking-tight">{block.title}</h2>
+            </div>
+          </div>
+        );
+      case 'countdown':
+        return (
+          <div onClick={handleLink} className={`${commonClasses} bg-emerald-900 rounded-3xl p-8 text-center text-white shadow-xl`}>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 opacity-60">Counting down to the Anniversary</p>
+            <div className="font-serif italic text-3xl md:text-6xl flex justify-center gap-4">
+              {/* Note: In a real app, you'd add a small timer function here. For now, we show the target date */}
+              {block.content || 'Date Not Set'}
+            </div>
+          </div>
+        );
+      case 'grid':
+        return (
+          <div onClick={handleLink} className={`${commonClasses} grid grid-cols-1 md:grid-cols-3 gap-6`}>
+            {block.items?.map((item, i) => (
+              <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                <h4 className="font-serif italic text-xl text-emerald-900 mb-2">{item.title}</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        );
+      case 'text':
+        return (
+          <div onClick={handleLink} className={`${commonClasses} max-w-3xl mx-auto text-center py-12`}>
+            <h2 className="font-serif italic text-3xl text-emerald-900 mb-6">{block.title}</h2>
+            <div className="text-slate-600 text-sm md:text-base leading-relaxed whitespace-pre-line px-4">
+              {block.content}
+            </div>
+          </div>
+        );
+      case 'slideshow':
+        const images = block.imageUrl?.split(',').map(img => img.trim()) || [];
+        return (
+          <div onClick={handleLink} className={`${commonClasses} flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x`}>
+            {images.map((img, i) => (
+              <img key={i} src={img} className="h-64 md:h-96 rounded-2xl shadow-lg snap-center" alt={`Slide ${i}`} />
+            ))}
+          </div>
+        );
+      case 'divider':
+        return <div className="w-24 h-1 bg-[#C5A021]/30 mx-auto my-16 rounded-full" />;
+      default:
+        return null;
+    }
+  };
+
   if (view === 'admin') {
     return (
       <div className="min-h-screen bg-slate-50 font-sans text-slate-900 text-[10px]">
@@ -242,8 +307,10 @@ export default function ChurchPortal() {
                       className="text-[9px] font-black uppercase border rounded-full px-4 py-2 bg-slate-50 outline-none"
                     >
                       <option value="hero">Hero Banner</option>
+                      <option value="slideshow">Slideshow Gallery</option>
                       <option value="countdown">Countdown</option>
                       <option value="text">Narrative Text</option>
+                      <option value="grid">Feature Grid</option>
                       <option value="image">Single Image</option>
                       <option value="divider">Divider Line</option>
                     </select>
@@ -277,24 +344,80 @@ export default function ChurchPortal() {
 
                       {/* Sub-editors based on block type */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-50">
-                        {(block.type === 'hero' || block.type === 'image') && (
-                          <div className="col-span-2">
-                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">Image URL</label>
-                            <input className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] outline-none" defaultValue={block.imageUrl} onBlur={(e) => updateField('homeBlocks', block.id, { imageUrl: e.target.value })} />
+                        <div className="space-y-6 pt-4 border-t border-slate-50">
+                          {/* GLOBAL LINK SETTING */}
+                          <div className="bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
+                            <label className="text-[7px] font-black text-emerald-700 uppercase tracking-widest block mb-1">Action Link (Clicking this block goes to...)</label>
+                            <select
+                              className="w-full bg-white border rounded-lg px-3 py-2 text-[10px] outline-none font-bold"
+                              value={block.linkTo}
+                              onChange={(e) => updateField('homeBlocks', block.id, { linkTo: e.target.value })}
+                            >
+                              <option value="">No Link (Static)</option>
+                              <option value="vision">Vision Page</option>
+                              <option value="floor">Floor Plan</option>
+                              <option value="program">Program</option>
+                              <option value="logistics">Logistics</option>
+                              <option value="committees">Committees</option>
+                              <option value="register">Registration Form</option>
+                            </select>
                           </div>
-                        )}
-                        {block.type === 'text' && (
-                          <div className="col-span-2">
-                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">Content (Markdown Supported)</label>
-                            <textarea className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] h-24 outline-none resize-none" defaultValue={block.content} onBlur={(e) => updateField('homeBlocks', block.id, { content: e.target.value })} />
-                          </div>
-                        )}
-                        {block.type === 'countdown' && (
-                          <div className="col-span-2">
-                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">Target Event Date & Time</label>
-                            <input type="datetime-local" className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] outline-none" defaultValue={block.content} onChange={(e) => updateField('homeBlocks', block.id, { content: e.target.value })} />
-                          </div>
-                        )}
+
+                          {/* HERO / IMAGE / SLIDESHOW EDITOR */}
+                          {(block.type === 'hero' || block.type === 'image' || block.type === 'slideshow') && (
+                            <div className="space-y-3">
+                              <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block">Images</label>
+                              <textarea
+                                className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] outline-none placeholder:italic"
+                                placeholder={block.type === 'slideshow' ? "Paste multiple image URLs separated by commas..." : "Paste Image URL..."}
+                                defaultValue={block.imageUrl}
+                                onBlur={(e) => updateField('homeBlocks', block.id, { imageUrl: e.target.value })}
+                              />
+                              <p className="text-[7px] text-slate-400 italic">For Slideshow, separate links with a comma (,)</p>
+                            </div>
+                          )}
+
+                          {/* FEATURE GRID EDITOR */}
+                          {block.type === 'grid' && (
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Grid Items</label>
+                                <button
+                                  onClick={() => {
+                                    const newItems = [...(block.items || []), { title: 'New Item', desc: '', icon: 'Worship' }];
+                                    updateField('homeBlocks', block.id, { items: newItems });
+                                  }}
+                                  className="text-[8px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full hover:bg-emerald-100"
+                                >+ Add Card</button>
+                              </div>
+                              <div className="grid grid-cols-1 gap-3">
+                                {block.items?.map((item, i) => (
+                                  <div key={i} className="p-3 border rounded-xl bg-slate-50/50 flex flex-col gap-2 relative">
+                                    <button
+                                      onClick={() => {
+                                        const newItems = block.items.filter((_, idx) => idx !== i);
+                                        updateField('homeBlocks', block.id, { items: newItems });
+                                      }}
+                                      className="absolute top-2 right-2 text-red-300 hover:text-red-500"
+                                    >×</button>
+                                    <input className="bg-transparent border-b text-[10px] font-bold outline-none" placeholder="Item Title" defaultValue={item.title} onBlur={(e) => { let items = [...block.items]; items[i].title = e.target.value; updateField('homeBlocks', block.id, { items }); }} />
+                                    <textarea className="bg-transparent text-[9px] outline-none h-12 resize-none" placeholder="Description..." defaultValue={item.desc} onBlur={(e) => { let items = [...block.items]; items[i].desc = e.target.value; updateField('homeBlocks', block.id, { items }); }} />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* NARRATIVE TEXT / COUNTDOWN EDITOR */}
+                          {(block.type === 'text' || block.type === 'countdown') && (
+                            <div>
+                              <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                                {block.type === 'text' ? 'Content (Markdown)' : 'Target Date (YYYY-MM-DD HH:MM)'}
+                              </label>
+                              <textarea className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] h-24 outline-none resize-none" defaultValue={block.content} onBlur={(e) => updateField('homeBlocks', block.id, { content: e.target.value })} />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -622,8 +745,8 @@ export default function ChurchPortal() {
               </div>
             )}
           </div>
-        </main>
-      </div>
+        </main >
+      </div >
     );
   }
 
@@ -662,7 +785,7 @@ export default function ChurchPortal() {
         {/* BOTTOM ROW: Navigation Menu (Auto-Wrapping for Small Screens) */}
         <div className="bg-[#F4F1E8] border-b border-gray-200 py-1 md:py-0">
           <div className="flex flex-wrap justify-center items-center gap-y-1 gap-x-4 md:gap-12 px-4 max-w-2xl mx-auto h-auto min-h-[40px]">
-            {['vision', 'floor', 'program', 'logistics', 'committees'].map(t => (
+            {['home', 'vision', 'program', 'floor', 'register', 'logistics', 'committees'].map(t => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
@@ -684,6 +807,21 @@ export default function ChurchPortal() {
             <p className="text-emerald-800 font-serif italic opacity-75 leading-relaxed text-[13px] md:text-[20px]">“{siteContent.verse}”</p>
           </div>
         </header>
+
+        {activeTab === 'home' && (
+          <div className="space-y-4 md:space-y-12 animate-in fade-in duration-1000">
+            {homeBlocks.length > 0 ? (
+              homeBlocks.map(block => (
+                <HomeBlockRenderer key={block.id} block={block} />
+              ))
+            ) : (
+              <div className="text-center py-40 opacity-20">
+                <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="Logo" className="w-16 mx-auto mb-4" />
+                <p className="font-serif italic text-xl">The journey begins soon...</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === 'vision' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 animate-in duration-500">
