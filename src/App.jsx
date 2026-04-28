@@ -163,16 +163,29 @@ export default function ChurchPortal() {
 
   const addHomeBlock = async (type) => {
     const newOrder = homeBlocks.length > 0 ? Math.max(...homeBlocks.map(b => b.order || 0)) + 1 : 0;
-    await addDoc(collection(db, 'homeBlocks'), {
+
+    // Create the base data
+    const blockData = {
       type,
       order: newOrder,
       title: type.toUpperCase() + ' SECTION',
       content: '',
       imageUrl: '',
-      linkTo: '', // For navigation (e.g., 'register', 'program')
-      items: [], // For grids and slideshows
-      isActive: true
-    });
+      linkTo: '',
+      isActive: true,
+      items: [] // default empty
+    };
+
+    // If it's a grid, we give it 3 starter cards with the right fields
+    if (type === 'grid') {
+      blockData.items = [
+        { id: Date.now() + 1, title: 'Card 1', desc: '', imageUrl: '' },
+        { id: Date.now() + 2, title: 'Card 2', desc: '', imageUrl: '' },
+        { id: Date.now() + 3, title: 'Card 3', desc: '', imageUrl: '' }
+      ];
+    }
+
+    await addDoc(collection(db, 'homeBlocks'), blockData);
   };
 
   const moveHomeBlock = async (index, direction) => {
@@ -301,7 +314,9 @@ export default function ChurchPortal() {
 
         return (
           <div onClick={handleLink} className={`${commonClasses} bg-emerald-900 rounded-3xl p-8 text-center text-white shadow-xl`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-6 opacity-60">Counting down to the Anniversary</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-6 opacity-60">
+              {block.title || 'the Event'}
+            </p>
             <div className="flex justify-center gap-4 md:gap-10">
               {[['Days', timeLeft.d], ['Hrs', timeLeft.h], ['Min', timeLeft.m], ['Sec', timeLeft.s]].map(([label, val]) => (
                 <div key={label} className="flex flex-col">
@@ -314,13 +329,92 @@ export default function ChurchPortal() {
         );
       case 'grid':
         return (
-          <div onClick={handleLink} className={`${commonClasses} grid grid-cols-1 md:grid-cols-3 gap-6`}>
-            {block.items?.map((item, i) => (
-              <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                <h4 className="font-serif italic text-xl text-emerald-900 mb-2">{item.title}</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
+          <div onClick={handleLink} className={`${commonClasses} grid grid-cols-3 gap-2 md:gap-6`}>
+            {block.items?.map((item, i) => {
+              const bgImage = item.imageUrl || item.image || item.content;
+              const hasImage = bgImage && typeof bgImage === 'string' && bgImage.startsWith('http');
+
+              return (
+                <div
+                  key={i}
+                  className="relative aspect-square rounded-2xl border border-slate-100 transition-all overflow-hidden bg-slate-50 shadow-sm"
+                  style={{
+                    backgroundImage: hasImage ? `url(${bgImage})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
+                >
+                  {/* Dark Emerald Overlay for readability */}
+                  {hasImage && (
+                    <div className="absolute inset-0 bg-emerald-950/40 z-0" />
+                  )}
+
+                  {/* Content Wrapper: Pushes Title Up, Button Down */}
+                  <div className="relative z-10 w-full h-full flex flex-col justify-between items-center text-center py-3 px-1">
+
+                    {/* TOP: Title */}
+                    <div className="w-full">
+                      <h4 className={`font-serif italic text-[10px] md:text-lg leading-tight ${hasImage ? 'text-white' : 'text-emerald-900'}`}>
+                        {item.title}
+                      </h4>
+                    </div>
+
+                    {/* CENTER: Description */}
+                    <div className="flex-1 flex items-center justify-center px-1">
+                      {item.desc && (
+                        <p className={`text-[7px] md:text-xs leading-tight line-clamp-3 ${hasImage ? 'text-slate-200' : 'text-slate-500'}`}>
+                          {item.desc}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* BOTTOM: Button Area */}
+                    <div className="w-full flex justify-center pt-1">
+                      {item.ctaText ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const link = item.ctaLink;
+
+                            if (link?.startsWith('program:')) {
+                              const eventTitle = link.split(':')[1];
+                              setActiveTab('program');
+
+                              setTimeout(() => {
+                                const elements = document.getElementsByTagName('h4');
+                                const target = Array.from(elements).find(el =>
+                                  el.innerText.toLowerCase().includes(eventTitle.toLowerCase())
+                                );
+
+                                if (target) {
+                                  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  target.classList.add('bg-emerald-50');
+                                  setTimeout(() => target.classList.remove('bg-emerald-50'), 2000);
+                                }
+                              }, 300);
+                            } else if (['register', 'map', 'vision', 'program', 'logistics'].includes(link)) {
+                              setActiveTab(link);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            } else if (link) {
+                              window.open(link, '_blank');
+                            }
+                          }}
+                          className={`px-3 py-1 rounded-full text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all border ${hasImage
+                              ? 'bg-transparent border-white text-white hover:bg-white hover:text-emerald-900'
+                              : 'bg-emerald-900 border-emerald-900 text-white hover:bg-emerald-800'
+                            }`}
+                        >
+                          {item.ctaText}
+                        </button>
+                      ) : (
+                        /* Maintains alignment even if button is missing */
+                        <div className="h-[18px] md:h-[24px]" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
       case 'text':
@@ -429,9 +523,9 @@ export default function ChurchPortal() {
                   <h3 className="font-serif italic text-lg text-emerald-900">Home Composer</h3>
                   <div className="flex gap-2">
                     <select id="blockTypeSelector" className="text-[9px] font-bold uppercase bg-slate-100 rounded-lg px-2 py-1 outline-none border-none">
-                      <option value="hero">Hero</option>
+                      <option value="hero">Banner</option>
                       <option value="slideshow">Slideshow</option>
-                      <option value="countdown">Clock</option>
+                      <option value="countdown">Countdown</option>
                       <option value="grid">Grid</option>
                       <option value="text">Text</option>
                       <option value="image">Image</option>
@@ -463,8 +557,8 @@ export default function ChurchPortal() {
 
                           <input
                             className="flex-1 text-[10px] text-slate-400 bg-transparent border-none outline-none italic truncate min-w-[100px]"
-                            placeholder="URL or Text Content..."
-                            defaultValue={block.imageUrl || block.content}
+                            placeholder={block.type === 'countdown' ? "YYYY-MM-DD HH:mm:ss" : "URL or Text Content..."}
+                            defaultValue={block.type === 'countdown' ? block.content : (block.imageUrl || block.content)}
                             onBlur={(e) => updateField('homeBlocks', block.id, (block.type === 'text' || block.type === 'countdown') ? { content: e.target.value } : { imageUrl: e.target.value })}
                           />
 
@@ -485,20 +579,92 @@ export default function ChurchPortal() {
                       </div>
 
                       {block.type === 'grid' && (
-                        <div className="mt-2 ml-8 pl-4 border-l border-emerald-100 space-y-2 pb-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[7px] font-black text-emerald-800 uppercase tracking-widest">Grid Items</span>
-                            <button onClick={() => updateField('homeBlocks', block.id, { items: [...(block.items || []), { title: 'New', desc: '' }] })} className="text-[7px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">+ Add Card</button>
+                        <div className="mt-4 space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-black uppercase text-emerald-800">Grid Cards</span>
+                            <button
+                              onClick={() => {
+                                const newItems = [...(block.items || []), { id: Date.now(), title: '', desc: '', imageUrl: '' }];
+                                updateField('homeBlocks', block.id, { items: newItems });
+                              }}
+                              className="text-[9px] bg-emerald-600 text-white px-2 py-1 rounded-full font-bold"
+                            >
+                              + Add Card
+                            </button>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {block.items?.map((item, i) => (
-                              <div key={i} className="flex gap-2 items-center bg-white p-1 rounded border border-slate-50">
-                                <input className="text-[9px] font-bold w-1/3 outline-none" defaultValue={item.title} onBlur={(e) => { let its = [...block.items]; its[i].title = e.target.value; updateField('homeBlocks', block.id, { items: its }); }} />
-                                <input className="text-[9px] text-slate-400 flex-1 outline-none" defaultValue={item.desc} onBlur={(e) => { let its = [...block.items]; its[i].desc = e.target.value; updateField('homeBlocks', block.id, { items: its }); }} />
-                                <button onClick={() => { let its = block.items.filter((_, idx) => idx !== i); updateField('homeBlocks', block.id, { items: its }); }} className="text-red-200 text-[10px]">×</button>
+
+                          {block.items && block.items.map((item, index) => (
+                            <div key={item.id || index} className="p-3 bg-white rounded-lg border border-slate-200 space-y-2">
+                              <div className="flex gap-2">
+                                <input
+                                  className="flex-1 text-[9px] font-bold text-slate-700 bg-slate-50 p-1 rounded outline-none"
+                                  placeholder="Card Title"
+                                  defaultValue={item.title}
+                                  onBlur={(e) => {
+                                    const newItems = [...block.items];
+                                    newItems[index].title = e.target.value;
+                                    updateField('homeBlocks', block.id, { items: newItems });
+                                  }}
+                                />
+                                <button
+                                  onClick={() => {
+                                    const newItems = block.items.filter((_, i) => i !== index);
+                                    updateField('homeBlocks', block.id, { items: newItems });
+                                  }}
+                                  className="text-red-400 text-xs px-2"
+                                >
+                                  ×
+                                </button>
                               </div>
-                            ))}
-                          </div>
+
+                              <input
+                                className="w-full text-[9px] text-slate-500 bg-slate-50 p-1 rounded outline-none italic"
+                                placeholder="Image URL (i.ibb.co...)"
+                                defaultValue={item.imageUrl}
+                                onBlur={(e) => {
+                                  const newItems = [...block.items];
+                                  newItems[index].imageUrl = e.target.value;
+                                  updateField('homeBlocks', block.id, { items: newItems });
+                                }}
+                              />
+
+                              <textarea
+                                className="w-full text-[9px] text-slate-400 bg-slate-50 p-1 rounded outline-none"
+                                placeholder="Description (Optional)"
+                                defaultValue={item.desc}
+                                onBlur={(e) => {
+                                  const newItems = [...block.items];
+                                  newItems[index].desc = e.target.value;
+                                  updateField('homeBlocks', block.id, { items: newItems });
+                                }}
+                              />
+                              {/* New: CTA Button Text */}
+                              <div className="flex gap-2">
+                                <input
+                                  className="flex-1 text-[9px] font-black uppercase text-slate-500 bg-slate-50 p-1.5 rounded outline-none border border-transparent focus:border-emerald-200"
+                                  placeholder="Button Text (e.g. JOIN NOW)"
+                                  defaultValue={item.ctaText}
+                                  onBlur={(e) => {
+                                    const newItems = [...block.items];
+                                    newItems[index].ctaText = e.target.value;
+                                    updateField('homeBlocks', block.id, { items: newItems });
+                                  }}
+                                />
+
+                                {/* New: CTA Button Link */}
+                                <input
+                                  className="flex-1 text-[9px] text-slate-400 bg-slate-50 p-1.5 rounded outline-none border border-transparent focus:border-emerald-200"
+                                  placeholder="Link (e.g. /register or URL)"
+                                  defaultValue={item.ctaLink}
+                                  onBlur={(e) => {
+                                    const newItems = [...block.items];
+                                    newItems[index].ctaLink = e.target.value;
+                                    updateField('homeBlocks', block.id, { items: newItems });
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
 
@@ -1071,275 +1237,284 @@ export default function ChurchPortal() {
         </div>
       </nav>
 
-      <main className="px-6 max-w-7xl mx-auto pb-20 pt-32 md:pt-40">
-        <header className="text-center mb-12 animate-in fade-in duration-1000">
-          <h1 className="text-4xl md:text-7xl font-serif text-emerald-900 mb-2 italic tracking-tight">{siteContent.mainTitle}</h1>
-          <p className="text-[#C5A021] font-bold tracking-[0.25em] text-[10px] md:text-sm mb-6 uppercase">{siteContent.subTitle}</p>
-          <div className="max-w-xs md:max-w-4xl mx-auto border-y border-emerald-900/5 py-6">
-            <p className="text-emerald-800 font-serif italic opacity-75 leading-relaxed text-[13px] md:text-[20px]">“{siteContent.verse}”</p>
-          </div>
-        </header>
-
-        {activeTab === 'home' && (
-          <div className="space-y-4 md:space-y-12 animate-in fade-in duration-1000">
-            {homeBlocks.length > 0 ? (
-              homeBlocks.map(block => (
-                <HomeBlockRenderer key={block.id} block={block} />
-              ))
-            ) : (
-              <div className="text-center py-40 opacity-20">
-                <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="Logo" className="w-16 mx-auto mb-4" />
-                <p className="font-serif italic text-xl">The journey begins soon...</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'vision' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 animate-in duration-500">
-            <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit">
-              <div className="bg-emerald-900 p-4"><h2 className="text-lg md:text-xl font-serif text-white italic tracking-tight leading-none">The 4 Spiritual Pillars</h2></div>
-              <div className="divide-y divide-slate-50">
-                {[1, 2, 3, 4].map(n => (
-                  <div key={n} className="p-4 hover:bg-slate-50 transition-all">
-                    <h4 className="font-bold uppercase text-[9px] text-emerald-900 mb-1 tracking-widest opacity-40 italic">{siteContent?.[`pillar${n}Title`] || `Pillar ${n}`}</h4>
-                    <p className="text-slate-600 text-[11px] md:text-sm leading-relaxed font-medium tracking-tight">{siteContent?.[`pillar${n}Desc`]}</p>
-                  </div>
-                ))}
-              </div>
+      <main className="px-5 max-w-6xl mx-auto pb-35 pt-35 md:pt-35">
+        {activeTab === 'home' && siteContent && (
+          <header className="text-center mb-4 animate-in fade-in duration-1000">
+            <h1 className="text-4xl md:text-7xl font-serif text-emerald-900 mb-2 italic tracking-tight">
+              {siteContent.mainTitle}
+            </h1>
+            <p className="text-[#C5A021] font-bold tracking-[0.25em] text-[10px] md:text-sm mb-4 uppercase">
+              {siteContent.subTitle}
+            </p>
+            <div className="max-w-xs md:max-w-3xl mx-auto border-y border-emerald-900/10 py-3">
+              <p className="text-emerald-800 font-serif italic opacity-75 leading-relaxed text-[13px] md:text-lg">
+                {siteContent.verse}
+              </p>
             </div>
-            <div className="flex flex-col gap-3">
-              {visionActs.map(act => (
-                <div key={act.id} className="bg-white p-5 md:p-6 rounded-xl border border-slate-100 border-l-[6px] border-emerald-900 shadow-sm">
-                  <h3 className="font-serif text-lg italic text-emerald-900 tracking-tight mb-1">{act.title}</h3>
-                  <p className="text-[11px] md:text-sm text-gray-500 leading-relaxed font-medium tracking-tight whitespace-pre-line">{act.desc}</p>
+          </header>
+        )}
+        <div className="mt-2">
+
+          {activeTab === 'home' && (
+            <div className="space-y-8 animate-in fade-in pt-0">
+              {homeBlocks.length > 0 ? (
+                homeBlocks.map(block => (
+                  <HomeBlockRenderer key={block.id} block={block} />
+                ))
+              ) : (
+                <div className="text-center py-10 opacity-40">
+                  <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="Logo" className="w-16 mx-auto mb-4" />
+                  <p className="font-serif italic text-xl">The journey begins soon...</p>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'map' && (
-          <div className="animate-in fade-in duration-500 max-w-5xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-              <h3 className="font-bold text-emerald-900 uppercase text-[10px] tracking-widest italic opacity-40">{siteContent.mapHeader || 'Hall Layout Architect'}</h3>
-              <button onClick={() => setIsBanquet(!isBanquet)} className="bg-emerald-900 text-white px-8 py-2 rounded-xl text-[10px] font-bold uppercase shadow-lg active:scale-95 transition-all">{isBanquet ? 'Switch Layout: Service' : 'Switch Layout: Banquet'}</button>
-            </div>
-            <div className="flex justify-between items-center bg-white border border-gray-100 rounded-xl p-3 mb-8 shadow-sm overflow-x-auto no-scrollbar gap-8">
-              <div className="flex items-center gap-1.5"><div className="w-3.5 h-2.5 border border-black bg-white" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendRooms || 'Rooms'}</span></div>
-              <div className="flex items-center gap-1.5"><div className="flex gap-0.5"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /></div><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendSeating || 'Seating'}</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full border border-white shadow-md" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendEntry || 'Circle'}</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3.5 h-2.5 bg-orange-400 border border-orange-600 rounded-sm" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendBanquet || 'Tables'}</span></div>
-            </div>
-            <MapRenderer mode={isBanquet ? 'banquet' : 'service'} />
-          </div>
-        )}
-
-        {activeTab === 'program' && (
-          <div className="space-y-6 animate-in duration-700 max-w-4xl mx-auto">
-            <div className="flex flex-wrap bg-emerald-900/5 p-1 rounded-xl gap-2 shadow-inner">
-              {masterEvents.filter(e => e.isActive !== false).map(ev => (
-                <button
-                  key={ev.id}
-                  onClick={() => setActiveEventSubTab(ev.id)}
-                  className={`flex-1 min-w-[100px] py-2 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-500 ${activeEventSubTab === ev.id ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
-                >
-                  {ev.name}
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-4 bg-emerald-900 text-white text-center"><h3 className="font-serif text-lg italic tracking-tight">{masterEvents.find(e => e.id === activeEventSubTab)?.programHeader || 'Itinerary'}</h3></div>
-              <div className="divide-y divide-slate-50">
-                {program.filter(item => item.parentId === activeEventSubTab).map(row => (
-                  <div key={row.id}>
-                    <div onClick={() => setActiveProgramId(activeProgramId === row.id ? null : row.id)} className="flex items-center p-4 cursor-pointer hover:bg-slate-50 transition-all">
-                      <div className="w-16 md:w-24 font-bold text-[10px] text-emerald-800 uppercase tracking-tighter shrink-0">{row.time}</div>
-                      <div className="flex-1">
-                        <div className="font-bold text-[11px] md:text-sm text-slate-700 leading-tight tracking-tight">{row.activity}</div>
-                        {row.remarks && <div className="text-[9px] text-emerald-600 italic font-semibold">— {row.remarks}</div>}
-                      </div>
+          {activeTab === 'vision' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 animate-in duration-500">
+              <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit">
+                <div className="bg-emerald-900 p-4"><h2 className="text-lg md:text-xl font-serif text-white italic tracking-tight leading-none">The 4 Spiritual Pillars</h2></div>
+                <div className="divide-y divide-slate-50">
+                  {[1, 2, 3, 4].map(n => (
+                    <div key={n} className="p-4 hover:bg-slate-50 transition-all">
+                      <h4 className="font-bold uppercase text-[9px] text-emerald-900 mb-1 tracking-widest opacity-40 italic">{siteContent?.[`pillar${n}Title`] || `Pillar ${n}`}</h4>
+                      <p className="text-slate-600 text-[11px] md:text-sm leading-relaxed font-medium tracking-tight">{siteContent?.[`pillar${n}Desc`]}</p>
                     </div>
-                    {activeProgramId === row.id && row.description && (
-                      <div className="px-4 pb-4 bg-slate-50/50 text-[10px] text-slate-500 pl-20 md:pl-28 animate-in fade-in leading-relaxed font-medium">{row.description}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {logisticsCards.filter(c => c.parentId === activeEventSubTab).map(card => (
-                <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-[4px] border-[#C5A021] shadow-sm">
-                  <h4 className="font-bold text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
-                  <p className="text-[11px] text-gray-600 leading-relaxed font-medium whitespace-pre-line tracking-tight">{card.desc}</p>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'register' && (
-          <div className="max-w-xl mx-auto py-10 animate-in fade-in duration-700">
-            {/* Form Selection Tabs */}
-            <div className="flex justify-center gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
-              {forms.filter(f => f.isVisible).map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setActiveFormId(f.id)}
-                  className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeFormId === f.id ? 'bg-emerald-900 text-white shadow-md' : 'text-slate-400 bg-white border border-slate-100'}`}
-                >
-                  {f.title}
-                </button>
-              ))}
-            </div>
-
-            {activeFormId && forms.find(f => f.id === activeFormId) && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const currentForm = forms.find(f => f.id === activeFormId);
-                  submitResponse({
-                    ...Object.fromEntries(new FormData(e.target).entries()),
-                    formTitle: currentForm.title
-                  });
-                }}
-                className="bg-white border border-slate-100 rounded-2xl p-6 md:p-10 shadow-sm space-y-6"
-              >
-                <h3 className="font-serif italic text-xl text-emerald-900 border-b border-slate-50 pb-3">
-                  {forms.find(f => f.id === activeFormId)?.title}
-                </h3>
-
-                {forms.find(f => f.id === activeFormId)?.fields?.map(field => (
-                  <div key={field.id} className="space-y-1.5">
-                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">{field.label}</label>
-
-                    {field.type === 'text' && (
-                      <input name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none focus:border-emerald-900 transition-all bg-transparent" placeholder="Your answer" />
-                    )}
-
-                    {field.type === 'paragraph' && (
-                      <textarea name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none focus:border-emerald-900 transition-all bg-transparent h-24 resize-none" placeholder="Your answer" />
-                    )}
-
-                    {field.type === 'dropdown' && (
-                      <select name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none bg-transparent appearance-none">
-                        <option value="">Select Option</option>
-                        {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    )}
-
-                    {(field.type === 'radio' || field.type === 'checkbox') && (
-                      <div className="pt-1 flex flex-wrap gap-4">
-                        {field.options?.map(o => (
-                          <label key={o} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                            <input
-                              type={field.type === 'radio' ? 'radio' : 'checkbox'}
-                              name={field.type === 'radio' ? field.label : `${field.label}[]`}
-                              value={o}
-                              className="accent-emerald-900"
-                            /> {o}
-                          </label>
-                        ))}
-                      </div>
-                    )}
+              </div>
+              <div className="flex flex-col gap-3">
+                {visionActs.map(act => (
+                  <div key={act.id} className="bg-white p-5 md:p-6 rounded-xl border border-slate-100 border-l-[6px] border-emerald-900 shadow-sm">
+                    <h3 className="font-serif text-lg italic text-emerald-900 tracking-tight mb-1">{act.title}</h3>
+                    <p className="text-[11px] md:text-sm text-gray-500 leading-relaxed font-medium tracking-tight whitespace-pre-line">{act.desc}</p>
                   </div>
                 ))}
-
-                <button type="submit" className="w-full bg-emerald-900 text-white py-3 rounded-lg text-[10px] font-black uppercase tracking-widest mt-6 shadow-lg active:scale-95 transition-all">
-                  Submit Registration
-                </button>
-              </form>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'logistics' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 animate-in fade-in duration-700 items-start">
-            <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit">
-              <div className="bg-emerald-900 p-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-                <h3 className="font-serif italic text-white text-lg tracking-tight leading-none">{siteContent?.cateringHeader || 'Catering'}</h3>
               </div>
-              <div className="divide-y divide-slate-50">
-                {catering.map((item, i) => (
-                  <div key={i} className="p-4 hover:bg-slate-50 transition-all flex flex-col gap-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">{item.group}</span>
-                      {item.person && <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">PIC: {item.person}</span>}
-                    </div>
-                    <span className="text-[11px] md:text-[13px] font-bold text-emerald-900 tracking-tight leading-tight">{item.dish}</span>
-                  </div>
+            </div>
+          )}
+
+          {activeTab === 'map' && (
+            <div className="animate-in fade-in pt-0">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                <h3 className="font-bold text-emerald-900 uppercase text-[10px] tracking-widest italic opacity-40">{siteContent.mapHeader || 'Hall Layout Architect'}</h3>
+                <button onClick={() => setIsBanquet(!isBanquet)} className="bg-emerald-900 text-white px-8 py-2 rounded-xl text-[10px] font-bold uppercase shadow-lg active:scale-95 transition-all">{isBanquet ? 'Switch Layout: Service' : 'Switch Layout: Banquet'}</button>
+              </div>
+              <div className="flex justify-between items-center bg-white border border-gray-100 rounded-xl p-3 mb-8 shadow-sm overflow-x-auto no-scrollbar gap-8">
+                <div className="flex items-center gap-1.5"><div className="w-3.5 h-2.5 border border-black bg-white" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendRooms || 'Rooms'}</span></div>
+                <div className="flex items-center gap-1.5"><div className="flex gap-0.5"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /></div><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendSeating || 'Seating'}</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full border border-white shadow-md" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendEntry || 'Circle'}</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3.5 h-2.5 bg-orange-400 border border-orange-600 rounded-sm" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendBanquet || 'Tables'}</span></div>
+              </div>
+              <MapRenderer mode={isBanquet ? 'banquet' : 'service'} />
+            </div>
+          )}
+
+          {activeTab === 'program' && (
+            <div className="animate-in fade-in pt-0">
+              <div className="flex flex-wrap bg-emerald-900/5 p-1 rounded-xl gap-2 shadow-inner">
+                {masterEvents.filter(e => e.isActive !== false).map(ev => (
+                  <button
+                    key={ev.id}
+                    onClick={() => setActiveEventSubTab(ev.id)}
+                    className={`flex-1 min-w-[100px] py-2 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-500 ${activeEventSubTab === ev.id ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
+                  >
+                    {ev.name}
+                  </button>
                 ))}
-                {siteContent?.paxNote && (
-                  <div className="p-4 bg-slate-50 border-t border-slate-100">
-                    <p className="text-[10px] italic text-slate-500 font-medium tracking-tight">Note: {siteContent.paxNote}</p>
-                  </div>
-                )}
               </div>
-            </div>
-            <div className="space-y-4">
-              {logisticsCards.filter(card => !card.parentId).map(card => (
-                <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-l-[6px] border-emerald-900 shadow-sm hover:shadow-md transition-all duration-500">
-                  <h4 className="font-black text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
-                  <p className="text-[11px] md:text-sm text-slate-600 leading-relaxed font-bold tracking-tight whitespace-pre-line">{card.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* FIXED TAB CONDITION FOR COMMITTEES SITE SYNC */}
-        {activeTab === 'committees' && (
-          <div className="space-y-4 animate-in duration-700 max-w-4xl mx-auto">
-            <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-              <div className="flex justify-between items-end mb-1"><h3 className="font-black text-emerald-900 text-[9px] uppercase tracking-widest italic opacity-40">Event Readiness</h3><span className="font-serif italic text-emerald-900 text-3xl tracking-tighter">{Math.round((committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100)}%</span></div>
-              <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden border shadow-inner"><div className="h-full bg-emerald-600 transition-all duration-1000" style={{ width: `${(committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100}%` }} /></div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {committees.map((comm) => (
-                <div key={comm.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-4 border-emerald-900 shadow-sm group hover:shadow-md transition-all duration-500">
-                  <h3 className="font-bold text-emerald-900 text-xs uppercase tracking-tighter mb-4">{comm.title}</h3>
-                  <div className="space-y-2">
-                    {comm.tasks?.map((t, i) => {
-                      const overdue = !t.completed && isOverdue(t.dueDate);
-                      return (
-                        <div key={i} className={`p-3 rounded-lg border border-slate-50 transition-all duration-500 ${t.completed ? 'bg-slate-50 opacity-40 grayscale' : 'bg-white shadow-sm'}`}>
-                          <label className="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" className="mt-0.5 accent-emerald-600 w-3.5 h-3.5 rounded" checked={t.completed || false} onChange={async () => { const nt = [...comm.tasks]; nt[i].completed = !nt[i].completed; await updateField('committees', comm.id, { tasks: nt }); }} />
-                            <div className="flex-1 min-w-0">
-                              <span className={`text-[10px] md:text-[11px] block font-bold tracking-tight ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{t.text}</span>
-                              <div className="flex gap-2 mt-1 opacity-60">
-                                {t.dueDate && <span className={`text-[7px] font-black uppercase px-1 rounded ${overdue ? 'bg-red-50 text-red-600' : 'bg-slate-100'}`}>Due: {t.dueDate}</span>}
-                                {t.assignee && <span className="text-[7px] font-black uppercase bg-emerald-50 text-emerald-800 px-1 rounded">@{t.assignee}</span>}
-                              </div>
-                            </div>
-                          </label>
+              <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="p-4 bg-emerald-900 text-white text-center"><h3 className="font-serif text-lg italic tracking-tight">{masterEvents.find(e => e.id === activeEventSubTab)?.programHeader || 'Itinerary'}</h3></div>
+                <div className="divide-y divide-slate-50">
+                  {program.filter(item => item.parentId === activeEventSubTab).map(row => (
+                    <div key={row.id}>
+                      <div onClick={() => setActiveProgramId(activeProgramId === row.id ? null : row.id)} className="flex items-center p-4 cursor-pointer hover:bg-slate-50 transition-all">
+                        <div className="w-16 md:w-24 font-bold text-[10px] text-emerald-800 uppercase tracking-tighter shrink-0">{row.time}</div>
+                        <div className="flex-1">
+                          <div className="font-bold text-[11px] md:text-sm text-slate-700 leading-tight tracking-tight">{row.activity}</div>
+                          {row.remarks && <div className="text-[9px] text-emerald-600 italic font-semibold">— {row.remarks}</div>}
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                      {activeProgramId === row.id && row.description && (
+                        <div className="px-4 pb-4 bg-slate-50/50 text-[10px] text-slate-500 pl-20 md:pl-28 animate-in fade-in leading-relaxed font-medium">{row.description}</div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {logisticsCards.filter(c => c.parentId === activeEventSubTab).map(card => (
+                  <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-[4px] border-[#C5A021] shadow-sm">
+                    <h4 className="font-bold text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
+                    <p className="text-[11px] text-gray-600 leading-relaxed font-medium whitespace-pre-line tracking-tight">{card.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <footer className="mt-40 border-t border-slate-100 pt-20 pb-16 text-center opacity-10 hover:opacity-50 transition-all duration-1000 grayscale hover:grayscale-0">
-          <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="Logo" className="w-12 mx-auto mb-8" />
-          <p className="text-[10px] font-black uppercase tracking-[0.6em] text-emerald-900 italic">Established 2014</p>
-        </footer>
+          {activeTab === 'register' && (
+            <div className="max-w-xl mx-auto animate-in fade-in pt-0">
+              {/* Form Selection Tabs */}
+              <div className="flex justify-center gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
+                {forms.filter(f => f.isVisible).map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setActiveFormId(f.id)}
+                    className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeFormId === f.id ? 'bg-emerald-900 text-white shadow-md' : 'text-slate-400 bg-white border border-slate-100'}`}
+                  >
+                    {f.title}
+                  </button>
+                ))}
+              </div>
 
-        {showPasscodeModal && (
-          <div className="fixed inset-0 z-[1000] bg-emerald-950/95 flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-500">
-            <div className="bg-white p-12 rounded-2xl w-full max-w-xs text-center shadow-2xl scale-95 animate-in zoom-in-95 shadow-emerald-900/20">
-              <form onSubmit={handlePasscode} className="space-y-10">
-                <h2 className="font-serif text-3xl italic text-emerald-900 tracking-tight leading-none">Master Access</h2>
-                <input type="password" autoFocus className="w-full text-center text-4xl p-5 bg-slate-50 rounded-2xl border-none outline-none font-black tracking-widest focus:ring-2 ring-emerald-500 transition-all shadow-inner" onChange={(e) => setPasscodeInput(e.target.value)} />
-                <button type="submit" className="w-full bg-emerald-900 text-white p-5 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all hover:bg-emerald-800">Verify Identity</button>
-              </form>
+              {activeFormId && forms.find(f => f.id === activeFormId) && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const currentForm = forms.find(f => f.id === activeFormId);
+                    submitResponse({
+                      ...Object.fromEntries(new FormData(e.target).entries()),
+                      formTitle: currentForm.title
+                    });
+                  }}
+                  className="bg-white border border-slate-100 rounded-2xl p-6 md:p-10 shadow-sm space-y-6"
+                >
+                  <h3 className="font-serif italic text-xl text-emerald-900 border-b border-slate-50 pb-3">
+                    {forms.find(f => f.id === activeFormId)?.title}
+                  </h3>
+
+                  {forms.find(f => f.id === activeFormId)?.fields?.map(field => (
+                    <div key={field.id} className="space-y-1.5">
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">{field.label}</label>
+
+                      {field.type === 'text' && (
+                        <input name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none focus:border-emerald-900 transition-all bg-transparent" placeholder="Your answer" />
+                      )}
+
+                      {field.type === 'paragraph' && (
+                        <textarea name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none focus:border-emerald-900 transition-all bg-transparent h-24 resize-none" placeholder="Your answer" />
+                      )}
+
+                      {field.type === 'dropdown' && (
+                        <select name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none bg-transparent appearance-none">
+                          <option value="">Select Option</option>
+                          {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      )}
+
+                      {(field.type === 'radio' || field.type === 'checkbox') && (
+                        <div className="pt-1 flex flex-wrap gap-4">
+                          {field.options?.map(o => (
+                            <label key={o} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                              <input
+                                type={field.type === 'radio' ? 'radio' : 'checkbox'}
+                                name={field.type === 'radio' ? field.label : `${field.label}[]`}
+                                value={o}
+                                className="accent-emerald-900"
+                              /> {o}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  <button type="submit" className="w-full bg-emerald-900 text-white py-3 rounded-lg text-[10px] font-black uppercase tracking-widest mt-6 shadow-lg active:scale-95 transition-all">
+                    Submit Registration
+                  </button>
+                </form>
+              )}
             </div>
-          </div>
-        )}
+          )}
+
+          {activeTab === 'logistics' && (
+            <div className="animate-in fade-in pt-0">
+              <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit">
+                <div className="bg-emerald-900 p-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                  <h3 className="font-serif italic text-white text-lg tracking-tight leading-none">{siteContent?.cateringHeader || 'Catering'}</h3>
+                </div>
+                <div className="divide-y divide-slate-50">
+                  {catering.map((item, i) => (
+                    <div key={i} className="p-4 hover:bg-slate-50 transition-all flex flex-col gap-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">{item.group}</span>
+                        {item.person && <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">PIC: {item.person}</span>}
+                      </div>
+                      <span className="text-[11px] md:text-[13px] font-bold text-emerald-900 tracking-tight leading-tight">{item.dish}</span>
+                    </div>
+                  ))}
+                  {siteContent?.paxNote && (
+                    <div className="p-4 bg-slate-50 border-t border-slate-100">
+                      <p className="text-[10px] italic text-slate-500 font-medium tracking-tight">Note: {siteContent.paxNote}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-4">
+                {logisticsCards.filter(card => !card.parentId).map(card => (
+                  <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-l-[6px] border-emerald-900 shadow-sm hover:shadow-md transition-all duration-500">
+                    <h4 className="font-black text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
+                    <p className="text-[11px] md:text-sm text-slate-600 leading-relaxed font-bold tracking-tight whitespace-pre-line">{card.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'committees' && (
+            <div className="animate-in fade-in pt-0">
+              <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                <div className="flex justify-between items-end mb-1"><h3 className="font-black text-emerald-900 text-[9px] uppercase tracking-widest italic opacity-40">Event Readiness</h3><span className="font-serif italic text-emerald-900 text-3xl tracking-tighter">{Math.round((committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100)}%</span></div>
+                <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden border shadow-inner"><div className="h-full bg-emerald-600 transition-all duration-1000" style={{ width: `${(committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100}%` }} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {committees.map((comm) => (
+                  <div key={comm.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-4 border-emerald-900 shadow-sm group hover:shadow-md transition-all duration-500">
+                    <h3 className="font-bold text-emerald-900 text-xs uppercase tracking-tighter mb-4">{comm.title}</h3>
+                    <div className="space-y-2">
+                      {comm.tasks?.map((t, i) => {
+                        const overdue = !t.completed && isOverdue(t.dueDate);
+                        return (
+                          <div key={i} className={`p-3 rounded-lg border border-slate-50 transition-all duration-500 ${t.completed ? 'bg-slate-50 opacity-40 grayscale' : 'bg-white shadow-sm'}`}>
+                            <label className="flex items-start gap-3 cursor-pointer">
+                              <input type="checkbox" className="mt-0.5 accent-emerald-600 w-3.5 h-3.5 rounded" checked={t.completed || false} onChange={async () => { const nt = [...comm.tasks]; nt[i].completed = !nt[i].completed; await updateField('committees', comm.id, { tasks: nt }); }} />
+                              <div className="flex-1 min-w-0">
+                                <span className={`text-[10px] md:text-[11px] block font-bold tracking-tight ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{t.text}</span>
+                                <div className="flex gap-2 mt-1 opacity-60">
+                                  {t.dueDate && <span className={`text-[7px] font-black uppercase px-1 rounded ${overdue ? 'bg-red-50 text-red-600' : 'bg-slate-100'}`}>Due: {t.dueDate}</span>}
+                                  {t.assignee && <span className="text-[7px] font-black uppercase bg-emerald-50 text-emerald-800 px-1 rounded">@{t.assignee}</span>}
+                                </div>
+                              </div>
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <footer className="mt-40 border-t border-slate-100 pt-20 pb-16 text-center opacity-10 hover:opacity-50 transition-all duration-1000 grayscale hover:grayscale-0">
+            <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="Logo" className="w-12 mx-auto mb-8" />
+            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-emerald-900 italic">Established 2014</p>
+          </footer>
+
+          {showPasscodeModal && (
+            <div className="fixed inset-0 z-[1000] bg-emerald-950/95 flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-500">
+              <div className="bg-white p-12 rounded-2xl w-full max-w-xs text-center shadow-2xl scale-95 animate-in zoom-in-95 shadow-emerald-900/20">
+                <form onSubmit={handlePasscode} className="space-y-10">
+                  <h2 className="font-serif text-3xl italic text-emerald-900 tracking-tight leading-none">Master Access</h2>
+                  <input type="password" autoFocus className="w-full text-center text-4xl p-5 bg-slate-50 rounded-2xl border-none outline-none font-black tracking-widest focus:ring-2 ring-emerald-500 transition-all shadow-inner" onChange={(e) => setPasscodeInput(e.target.value)} />
+                  <button type="submit" className="w-full bg-emerald-900 text-white p-5 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all hover:bg-emerald-800">Verify Identity</button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
