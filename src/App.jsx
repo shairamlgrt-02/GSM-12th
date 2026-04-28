@@ -534,39 +534,53 @@ export default function ChurchPortal() {
 
   return (
     <div className="min-h-screen bg-[#FCFBF4] font-sans text-[#2D2D2D] selection:bg-emerald-100">
-      <nav className="fixed w-full z-50 bg-white border-b border-gray-200 px-3 md:px-6 h-14 md:h-16 flex items-center shadow-sm">
-        <div className="flex items-center gap-1.5 md:gap-3 flex-shrink-0 pr-2 md:pr-4">
-          <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="Logo" className="w-5 h-5 md:w-8 md:h-8 object-contain" />
-          <div className="font-bold text-emerald-900 text-[10px] md:text-xl tracking-tighter uppercase">
-            GSM <span className="font-light italic text-[#C5A021]">12th</span>
+      <nav className="fixed w-full z-50 shadow-sm top-0">
+        {/* TOP ROW: Branding and Login */}
+        <div className="bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+          <div className="flex-1">
+            <div className="font-bold text-emerald-900 text-[10px] md:text-sm tracking-tighter uppercase whitespace-nowrap">
+              GSM <span className="font-light italic text-[#C5A021]">12th Anniversary</span>
+            </div>
+          </div>
+
+          <div className="flex-shrink-0">
+            <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="Logo" className="w-8 h-8 object-contain" />
+          </div>
+
+          <div className="flex-1 flex justify-end">
+            <button
+              onClick={() => isAdmin ? setView('admin') : setShowPasscodeModal(true)}
+              className="bg-emerald-50 text-emerald-900 p-2 rounded-full border border-emerald-100 shadow-sm active:scale-95 transition-all"
+            >
+              <LogIn size={14} strokeWidth={2.5} />
+            </button>
           </div>
         </div>
 
-        <div className="flex justify-center items-center flex-1 gap-1 md:gap-6 overflow-hidden">
-          {/* UPDATED TAB NAMES FOR SITE SYNC */}
-          {['vision', 'floor', 'program', 'logistics', 'committees'].map(t => (
-            <button key={t} onClick={() => setActiveTab(t)} className={`text-[7px] md:text-[0.7rem] font-bold uppercase tracking-[0.1em] border-b-2 py-1 transition-all whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-gray-400'}`}>{t}</button>
-          ))}
-        </div>
-
-        <div className="flex-shrink-0 flex justify-end pl-2 md:pl-4">
-          <button
-            onClick={() => isAdmin ? setView('admin') : setShowPasscodeModal(true)}
-            className="bg-emerald-50 text-emerald-900 px-2 md:px-3 py-1.5 rounded-lg flex items-center gap-1.5 md:gap-2 border border-emerald-100 shadow-sm active:scale-95 transition-all hover:bg-emerald-100"
-          >
-            {isAdmin ? <LayoutDashboard size={12} strokeWidth={2.5} className="md:w-[14px] md:h-[14px]" /> : <LogIn size={12} strokeWidth={2.5} className="md:w-[14px] md:h-[14px]" />}
-            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-              {isAdmin ? 'Dash' : 'Log In'}
-            </span>
-          </button>
+        {/* BOTTOM ROW: Navigation Menu (Clean & Snug) */}
+        <div className="bg-[#F4F1E8] border-b border-gray-200">
+          <div className="flex justify-around items-center h-10 px-2 max-w-full overflow-x-auto no-scrollbar scrollbar-hide">
+            {['vision', 'floor', 'program', 'logistics', 'committees'].map(t => (
+              <button
+                key={t}
+                onClick={() => setActiveTab(t)}
+                className={`text-[8px] md:text-[10px] font-black uppercase tracking-tighter transition-all px-1 h-full border-b-2 flex items-center ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'
+                  }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </nav>
 
-      <main className="pt-24 px-6 max-w-7xl mx-auto pb-20">
+      <main className="px-6 max-w-7xl mx-auto pb-20 pt-36">
         <header className="text-center mb-12 animate-in fade-in duration-1000">
           <h1 className="text-4xl md:text-7xl font-serif text-emerald-900 mb-2 italic tracking-tight">{siteContent.mainTitle}</h1>
           <p className="text-[#C5A021] font-bold tracking-[0.25em] text-[10px] md:text-sm mb-6 uppercase">{siteContent.subTitle}</p>
-          <div className="max-w-xs md:max-w-4xl mx-auto border-y border-emerald-900/5 py-6"><p className="text-emerald-800 font-serif italic opacity-75 leading-relaxed text-[13px] md:text-[20px]">“{siteContent.verse}”</p></div>
+          <div className="max-w-xs md:max-w-4xl mx-auto border-y border-emerald-900/5 py-6">
+            <p className="text-emerald-800 font-serif italic opacity-75 leading-relaxed text-[13px] md:text-[20px]">“{siteContent.verse}”</p>
+          </div>
         </header>
 
         {activeTab === 'vision' && (
