@@ -597,7 +597,7 @@ export default function ChurchPortal() {
           <div className="animate-in fade-in duration-500 max-w-5xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
               <h3 className="font-bold text-emerald-900 uppercase text-[10px] tracking-widest italic opacity-40">{siteContent.mapHeader || 'Hall Layout Architect'}</h3>
-              <button onClick={() => setIsBanquet(!isBanquet)} className="bg-emerald-900 text-white px-8 py-2 rounded-xl text-[10px] font-bold uppercase shadow-lg active:scale-95 transition-all">{isBanquet ? 'To Service' : 'To Banquet'}</button>
+              <button onClick={() => setIsBanquet(!isBanquet)} className="bg-emerald-900 text-white px-8 py-2 rounded-xl text-[10px] font-bold uppercase shadow-lg active:scale-95 transition-all">{isBanquet ? 'Switch Layout: Service' : 'Switch Layout: Banquet'}</button>
             </div>
             <div className="flex justify-between items-center bg-white border border-gray-100 rounded-xl p-3 mb-8 shadow-sm overflow-x-auto no-scrollbar gap-8">
               <div className="flex items-center gap-1.5"><div className="w-3.5 h-2.5 border border-black bg-white" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendRooms || 'Rooms'}</span></div>
