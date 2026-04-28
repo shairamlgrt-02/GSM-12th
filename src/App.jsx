@@ -346,7 +346,7 @@ export default function ChurchPortal() {
                 >
                   {/* Dark Emerald Overlay for readability */}
                   {hasImage && (
-                    <div className="absolute inset-0 bg-emerald-950/40 z-0" />
+                    <div className="absolute inset-0 bg-emerald-950/0 z-0" />
                   )}
 
                   {/* Content Wrapper: Pushes Title Up, Button Down */}
