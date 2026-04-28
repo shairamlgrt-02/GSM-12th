@@ -1052,33 +1052,21 @@ export default function ChurchPortal() {
           </div>
         </div>
 
-        {/* BOTTOM ROW: Balanced Wrapping & Tight Spacing */}
+        {/* BOTTOM ROW: Uniform Gaps & Smart Wrapping */}
         <div className="bg-[#F4F1E8] border-b border-gray-200 py-0.5 md:py-0">
-          <div className="flex flex-wrap justify-center items-center gap-x-1 md:gap-8 px-2 max-w-4xl mx-auto h-auto min-h-[32px] md:h-12">
-            {/* Group 1: The Core Info */}
-            <div className="flex justify-center items-center">
-              {['home', 'vision', 'program', 'register'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTab(t)}
-                  className={`text-[8px] md:text-[11px] font-black uppercase tracking-tighter transition-all px-2 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            {/* Group 2: The Logistics */}
-            <div className="flex justify-center items-center">
-              {['map', 'logistics', 'committees'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTab(t)}
-                  className={`text-[8px] md:text-[11px] font-black uppercase tracking-tighter transition-all px-2 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-wrap justify-center items-center gap-x-4 md:gap-x-8 px-4 max-w-5xl mx-auto min-h-[32px] md:h-12">
+            {['home', 'vision', 'program', 'register', 'map', 'logistics', 'committees'].map((t, i) => (
+              <button
+                key={t}
+                onClick={() => setActiveTab(t)}
+                className={`text-[8px] md:text-[11px] font-black uppercase tracking-tighter transition-all px-1 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap 
+                  ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'}
+                  ${i === 3 ? 'md:mr-0' : ''} 
+                `}
+              >
+                {t}
+              </button>
+            ))}
           </div>
         </div>
       </nav>
