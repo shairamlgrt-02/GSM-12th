@@ -31,6 +31,10 @@ export default function ChurchPortal() {
   const [siteContent, setSiteContent] = useState(null);
   const [homeBlocks, setHomeBlocks] = useState([]);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const [forms, setForms] = useState([]);
+  const [activeFormId, setActiveFormId] = useState(null);
+  const [responses, setResponses] = useState([]);
+  const [regSubTab, setRegSubTab] = useState('builder');
 
   const [visionActs, setVisionActs] = useState(() => {
     const saved = localStorage.getItem('gsm_vision_cache');
@@ -45,6 +49,12 @@ export default function ChurchPortal() {
     onSnapshot(doc(db, 'site', 'content'), (snap) => snap.exists() && setSiteContent(snap.data()));
     onSnapshot(query(collection(db, 'homeBlocks'), orderBy('order', 'asc')), (snap) => {
       setHomeBlocks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    onSnapshot(query(collection(db, 'forms'), orderBy('createdAt', 'desc')), (snap) => {
+      setForms(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    onSnapshot(collection(db, 'responses'), (snap) => {
+      setResponses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
     onSnapshot(query(collection(db, 'program'), orderBy('order', 'asc')), (snap) => {
       setProgram(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -174,6 +184,54 @@ export default function ChurchPortal() {
     await batch.commit();
   };
 
+  const createNewForm = async () => {
+    const docRef = await addDoc(collection(db, 'forms'), {
+      title: 'New Event Form',
+      isVisible: false,
+      createdAt: new Date().toISOString(),
+      fields: [] // Questions will live inside here
+    });
+    setActiveFormId(docRef.id);
+  };
+
+  const updateFormFields = async (formId, newFields) => {
+    await updateDoc(doc(db, 'forms', formId), { fields: newFields });
+  };
+  const onQuestionDragStart = (e, index) => {
+    e.dataTransfer.setData('draggedIndex', index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onQuestionDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const onQuestionDrop = async (e, targetIndex, formId) => {
+    e.preventDefault();
+    const draggedIndex = e.dataTransfer.getData('draggedIndex');
+    if (draggedIndex === "" || parseInt(draggedIndex) === targetIndex) return;
+
+    const currentForm = forms.find(f => f.id === formId);
+    let newFields = [...currentForm.fields];
+    const draggedItem = newFields[parseInt(draggedIndex)];
+
+    newFields.splice(parseInt(draggedIndex), 1);
+    newFields.splice(targetIndex, 0, draggedItem);
+
+    await updateFormFields(formId, newFields);
+  };
+
+  const submitResponse = async (formData) => {
+    await addDoc(collection(db, 'responses'), {
+      ...formData,
+      submittedAt: new Date().toISOString(),
+      status: 'Pending'
+    });
+    alert('Registration Submitted Successfully!');
+    setActiveTab('home');
+  };
+
   const MapRenderer = ({ mode, isAdminView = false }) => (
     <div className="relative w-full aspect-[1.8/1] md:aspect-[2.2/1] border-[2px] border-[#2D2D2D] bg-white overflow-hidden rounded-md mx-auto max-w-[700px]">
       {mapObjects.filter(obj => mode === 'banquet' ? obj.showInBanquet : obj.showInService).map(obj => (
@@ -275,29 +333,44 @@ export default function ChurchPortal() {
           </div>
         );
       case 'slideshow':
-        const slides = block.imageUrl?.split(',').map(img => img.trim()) || [];
+        const slides = block.slides || [];
         const [current, setCurrent] = useState(0);
 
         useEffect(() => {
+          if (slides.length <= 1) return;
           const slideTimer = setInterval(() => {
             setCurrent(prev => (prev === slides.length - 1 ? 0 : prev + 1));
-          }, 4000); // Switches every 4 seconds
+          }, 5000);
           return () => clearInterval(slideTimer);
         }, [slides.length]);
 
+        if (slides.length === 0) return null;
+
         return (
-          <div onClick={handleLink} className={`${commonClasses} relative group max-w-4xl mx-auto`}>
-            <div className="overflow-hidden rounded-3xl shadow-2xl aspect-[16/9]">
-              {slides.map((img, i) => (
+          <div className={`${commonClasses} relative group max-w-4xl mx-auto`}>
+            <div
+              onClick={() => slides[current]?.link && setActiveTab(slides[current].link)}
+              className={`overflow-hidden rounded-3xl shadow-2xl aspect-[16/9] relative ${slides[current]?.link ? 'cursor-pointer' : ''}`}
+            >
+              {slides.map((slide, i) => (
                 <img
                   key={i}
-                  src={img}
+                  src={slide.url}
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+                  alt=""
                 />
               ))}
+
+              {/* Optional Link Indicator */}
+              {slides[current]?.link && (
+                <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest border border-white/20">
+                  Click to View
+                </div>
+              )}
             </div>
-            {/* Instagram-style Dots */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-full">
+
+            {/* Instagram Dots */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-full z-10">
               {slides.map((_, i) => (
                 <button
                   key={i}
@@ -338,7 +411,7 @@ export default function ChurchPortal() {
 
         <main className="max-w-7xl mx-auto p-4 md:p-10">
           <div className="flex gap-2 mb-8 overflow-x-auto no-scrollbar justify-start md:justify-center px-2">
-            {['home', 'settings', 'vision', 'floor', 'program', 'logistics', 'committees'].map(t => (
+            {['home', 'settings', 'vision', 'map', 'program', 'logistics', 'committees', 'registration'].map(t => (
               <button
                 key={t}
                 onClick={() => setAdminActiveTab(t)}
@@ -351,137 +424,105 @@ export default function ChurchPortal() {
 
           <div className="bg-white p-4 md:p-10 rounded-2xl md:rounded-3xl border shadow-sm min-h-[600px]">
             {adminActiveTab === 'home' && (
-              <div className="space-y-8 animate-in fade-in">
-                <div className="flex justify-between items-end border-b border-slate-100 pb-4">
-                  <div>
-                    <h3 className="font-serif italic text-2xl text-emerald-900 leading-none">Home Composer</h3>
-                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-1">Landing Page Architect</p>
-                  </div>
+              <div className="space-y-4 animate-in fade-in">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                  <h3 className="font-serif italic text-lg text-emerald-900">Home Composer</h3>
                   <div className="flex gap-2">
-                    <select
-                      id="blockTypeSelector"
-                      className="text-[9px] font-black uppercase border rounded-full px-4 py-2 bg-slate-50 outline-none"
-                    >
-                      <option value="hero">Hero Banner</option>
-                      <option value="slideshow">Slideshow Gallery</option>
-                      <option value="countdown">Countdown</option>
-                      <option value="text">Narrative Text</option>
-                      <option value="grid">Feature Grid</option>
-                      <option value="image">Single Image</option>
-                      <option value="divider">Divider Line</option>
+                    <select id="blockTypeSelector" className="text-[9px] font-bold uppercase bg-slate-100 rounded-lg px-2 py-1 outline-none border-none">
+                      <option value="hero">Hero</option>
+                      <option value="slideshow">Slideshow</option>
+                      <option value="countdown">Clock</option>
+                      <option value="grid">Grid</option>
+                      <option value="text">Text</option>
+                      <option value="image">Image</option>
                     </select>
                     <button
                       onClick={() => addHomeBlock(document.getElementById('blockTypeSelector').value)}
-                      className="bg-emerald-900 text-white px-5 py-2 rounded-full text-[9px] font-black uppercase shadow-md hover:bg-emerald-800 transition-all flex items-center gap-2"
-                    >
-                      <Plus size={12} /> Add Block
-                    </button>
+                      className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg hover:bg-emerald-100"
+                    >+ Add</button>
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="bg-white border border-slate-100 rounded-xl overflow-hidden divide-y divide-slate-50 shadow-sm">
                   {homeBlocks.map((block, index) => (
-                    <div key={block.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm group">
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="flex flex-col gap-1">
-                          <button onClick={() => moveHomeBlock(index, 'up')} className="text-slate-300 hover:text-emerald-600"><ChevronUp size={14} /></button>
-                          <button onClick={() => moveHomeBlock(index, 'down')} className="text-slate-300 hover:text-emerald-600"><ChevronDown size={14} /></button>
+                    <div key={block.id} className="p-2 hover:bg-slate-50/50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button onClick={() => moveHomeBlock(index, 'up')} className="text-slate-300 hover:text-emerald-600"><ChevronUp size={12} /></button>
+                          <button onClick={() => moveHomeBlock(index, 'down')} className="text-slate-300 hover:text-emerald-600"><ChevronDown size={12} /></button>
                         </div>
-                        <div className="flex-1">
-                          <span className="text-[7px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded uppercase tracking-widest">{block.type}</span>
+
+                        <div className="flex-1 flex flex-wrap md:flex-nowrap items-center gap-2 min-w-0">
+                          <span className="text-[7px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded uppercase shrink-0">{block.type}</span>
+
                           <input
-                            className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 outline-none mt-1"
+                            className="text-[11px] font-bold text-slate-700 bg-transparent outline-none border-b border-transparent focus:border-emerald-200 w-32 shrink-0"
                             defaultValue={block.title}
                             onBlur={(e) => updateField('homeBlocks', block.id, { title: e.target.value })}
                           />
+
+                          <input
+                            className="flex-1 text-[10px] text-slate-400 bg-transparent border-none outline-none italic truncate min-w-[100px]"
+                            placeholder="URL or Text Content..."
+                            defaultValue={block.imageUrl || block.content}
+                            onBlur={(e) => updateField('homeBlocks', block.id, (block.type === 'text' || block.type === 'countdown') ? { content: e.target.value } : { imageUrl: e.target.value })}
+                          />
+
+                          <select
+                            className="text-[8px] font-black uppercase bg-transparent text-emerald-600 outline-none cursor-pointer shrink-0"
+                            value={block.linkTo || ''}
+                            onChange={(e) => updateField('homeBlocks', block.id, { linkTo: e.target.value })}
+                          >
+                            <option value="">No Link</option>
+                            <option value="vision">Vision</option>
+                            <option value="map">Map</option>
+                            <option value="program">Program</option>
+                            <option value="register">Register</option>
+                          </select>
+
+                          <button onClick={() => removeItem('homeBlocks', block.id, 'block')} className="text-red-200 hover:text-red-500 font-bold px-2 shrink-0">×</button>
                         </div>
-                        <button onClick={() => removeItem('homeBlocks', block.id, 'block')} className="text-red-200 hover:text-red-500"><Trash2 size={16} /></button>
                       </div>
 
-                      {/* Sub-editors based on block type */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-50">
-                        <div className="space-y-6 pt-4 border-t border-slate-50">
-                          {/* GLOBAL LINK SETTING */}
-                          <div className="bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
-                            <label className="text-[7px] font-black text-emerald-700 uppercase tracking-widest block mb-1">Action Link (Clicking this block goes to...)</label>
-                            <select
-                              className="w-full bg-white border rounded-lg px-3 py-2 text-[10px] outline-none font-bold"
-                              value={block.linkTo}
-                              onChange={(e) => updateField('homeBlocks', block.id, { linkTo: e.target.value })}
-                            >
-                              <option value="">No Link (Static)</option>
-                              <option value="vision">Vision Page</option>
-                              <option value="floor">Floor Plan</option>
-                              <option value="program">Program</option>
-                              <option value="logistics">Logistics</option>
-                              <option value="committees">Committees</option>
-                              <option value="register">Registration Form</option>
-                            </select>
+                      {block.type === 'grid' && (
+                        <div className="mt-2 ml-8 pl-4 border-l border-emerald-100 space-y-2 pb-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[7px] font-black text-emerald-800 uppercase tracking-widest">Grid Items</span>
+                            <button onClick={() => updateField('homeBlocks', block.id, { items: [...(block.items || []), { title: 'New', desc: '' }] })} className="text-[7px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">+ Add Card</button>
                           </div>
-
-                          {/* HERO / IMAGE / SLIDESHOW EDITOR */}
-                          {(block.type === 'hero' || block.type === 'image' || block.type === 'slideshow') && (
-                            <div className="space-y-3">
-                              <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block">Images</label>
-                              <textarea
-                                className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] outline-none placeholder:italic"
-                                placeholder={block.type === 'slideshow' ? "Paste multiple image URLs separated by commas..." : "Paste Image URL..."}
-                                defaultValue={block.imageUrl}
-                                onBlur={(e) => updateField('homeBlocks', block.id, { imageUrl: e.target.value })}
-                              />
-                              <p className="text-[7px] text-slate-400 italic">For Slideshow, separate links with a comma (,)</p>
-                            </div>
-                          )}
-
-                          {/* FEATURE GRID EDITOR */}
-                          {block.type === 'grid' && (
-                            <div className="space-y-4">
-                              <div className="flex justify-between items-center">
-                                <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Grid Items</label>
-                                <button
-                                  onClick={() => {
-                                    const newItems = [...(block.items || []), { title: 'New Item', desc: '', icon: 'Worship' }];
-                                    updateField('homeBlocks', block.id, { items: newItems });
-                                  }}
-                                  className="text-[8px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full hover:bg-emerald-100"
-                                >+ Add Card</button>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {block.items?.map((item, i) => (
+                              <div key={i} className="flex gap-2 items-center bg-white p-1 rounded border border-slate-50">
+                                <input className="text-[9px] font-bold w-1/3 outline-none" defaultValue={item.title} onBlur={(e) => { let its = [...block.items]; its[i].title = e.target.value; updateField('homeBlocks', block.id, { items: its }); }} />
+                                <input className="text-[9px] text-slate-400 flex-1 outline-none" defaultValue={item.desc} onBlur={(e) => { let its = [...block.items]; its[i].desc = e.target.value; updateField('homeBlocks', block.id, { items: its }); }} />
+                                <button onClick={() => { let its = block.items.filter((_, idx) => idx !== i); updateField('homeBlocks', block.id, { items: its }); }} className="text-red-200 text-[10px]">×</button>
                               </div>
-                              <div className="grid grid-cols-1 gap-3">
-                                {block.items?.map((item, i) => (
-                                  <div key={i} className="p-3 border rounded-xl bg-slate-50/50 flex flex-col gap-2 relative">
-                                    <button
-                                      onClick={() => {
-                                        const newItems = block.items.filter((_, idx) => idx !== i);
-                                        updateField('homeBlocks', block.id, { items: newItems });
-                                      }}
-                                      className="absolute top-2 right-2 text-red-300 hover:text-red-500"
-                                    >×</button>
-                                    <input className="bg-transparent border-b text-[10px] font-bold outline-none" placeholder="Item Title" defaultValue={item.title} onBlur={(e) => { let items = [...block.items]; items[i].title = e.target.value; updateField('homeBlocks', block.id, { items }); }} />
-                                    <textarea className="bg-transparent text-[9px] outline-none h-12 resize-none" placeholder="Description..." defaultValue={item.desc} onBlur={(e) => { let items = [...block.items]; items[i].desc = e.target.value; updateField('homeBlocks', block.id, { items }); }} />
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* NARRATIVE TEXT / COUNTDOWN EDITOR */}
-                          {(block.type === 'text' || block.type === 'countdown') && (
-                            <div>
-                              <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">
-                                {block.type === 'text' ? 'Content (Markdown)' : 'Target Date (YYYY-MM-DD HH:MM)'}
-                              </label>
-                              <textarea className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] h-24 outline-none resize-none" defaultValue={block.content} onBlur={(e) => updateField('homeBlocks', block.id, { content: e.target.value })} />
-                            </div>
-                          )}
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {block.type === 'slideshow' && (
+                        <div className="mt-2 ml-8 pl-4 border-l border-emerald-100 space-y-2 pb-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[7px] font-black text-emerald-800 uppercase tracking-widest">Slides</span>
+                            <button onClick={() => updateField('homeBlocks', block.id, { slides: [...(block.slides || []), { url: '', link: '' }] })} className="text-[7px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">+ Add Slide</button>
+                          </div>
+                          <div className="space-y-1">
+                            {block.slides?.map((slide, i) => (
+                              <div key={i} className="flex gap-2 items-center bg-white p-1 rounded border border-slate-50">
+                                <input className="text-[9px] text-slate-400 flex-1 outline-none" placeholder="Image URL" defaultValue={slide.url} onBlur={(e) => { let s = [...block.slides]; s[i].url = e.target.value; updateField('homeBlocks', block.id, { slides: s }); }} />
+                                <select className="text-[8px] font-bold outline-none bg-transparent" value={slide.link} onChange={(e) => { let s = [...block.slides]; s[i].link = e.target.value; updateField('homeBlocks', block.id, { slides: s }); }}>
+                                  <option value="">No Link</option><option value="vision">Vision</option><option value="register">Reg</option>
+                                </select>
+                                <button onClick={() => { let s = block.slides.filter((_, idx) => idx !== i); updateField('homeBlocks', block.id, { slides: s }); }} className="text-red-200 text-[10px]">×</button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
-                  {homeBlocks.length === 0 && (
-                    <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-3xl text-slate-300 font-bold uppercase tracking-widest">
-                      Your Landing Page is empty. Start adding blocks!
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -548,7 +589,7 @@ export default function ChurchPortal() {
               </div>
             )}
 
-            {adminActiveTab === 'floor' && (
+            {adminActiveTab === 'map' && (
               <div className="space-y-8 animate-in fade-in">
                 <div className="bg-emerald-50/50 p-4 md:p-6 rounded-3xl border border-emerald-100 space-y-4 shadow-inner">
                   <h4 className="text-[10px] font-black text-emerald-800 uppercase italic tracking-widest">MAP LABELS ARCHITECT</h4>
@@ -800,6 +841,179 @@ export default function ChurchPortal() {
                 </div>
               </div>
             )}
+
+            {adminActiveTab === 'registration' && (
+              <div className="space-y-4 animate-in fade-in max-w-4xl mx-auto">
+                <div className="flex gap-4 border-b border-slate-100 mb-2">
+                  {['builder', 'responses'].map(sub => (
+                    <button key={sub} onClick={() => setRegSubTab(sub)} className={`pb-2 text-[9px] font-black uppercase tracking-widest transition-all ${regSubTab === sub ? 'border-b-2 border-emerald-900 text-emerald-900' : 'text-slate-300'}`}>{sub}</button>
+                  ))}
+                </div>
+
+                {regSubTab === 'builder' && (
+                  <div className="space-y-4">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                      {forms.map(form => (
+                        <button key={form.id} onClick={() => setActiveFormId(form.id)} className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase whitespace-nowrap transition-all ${activeFormId === form.id ? 'bg-emerald-900 text-white border-emerald-900 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}>{form.title}</button>
+                      ))}
+                      <button onClick={createNewForm} className="px-3 py-1.5 border border-dashed rounded-lg text-[9px] font-black text-slate-300 hover:bg-slate-50">+ New Form</button>
+                    </div>
+
+                    {activeFormId && (
+                      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                        <div className="p-2 bg-slate-50 border-b flex justify-between items-center px-4">
+                          <input className="bg-transparent font-bold text-emerald-900 text-[11px] outline-none" defaultValue={forms.find(f => f.id === activeFormId)?.title} onBlur={(e) => updateField('forms', activeFormId, { title: e.target.value })} />
+                          <div className="flex items-center gap-3">
+                            <button onClick={() => updateField('forms', activeFormId, { isVisible: !forms.find(f => f.id === activeFormId)?.isVisible })} className="text-slate-400">
+                              {forms.find(f => f.id === activeFormId)?.isVisible ? <Eye size={12} className="text-emerald-600" /> : <EyeOff size={12} />}
+                            </button>
+                            <button onClick={() => {
+                              const currentForm = forms.find(f => f.id === activeFormId);
+                              updateFormFields(activeFormId, [...(currentForm.fields || []), { id: Date.now().toString(), type: 'text', label: 'New Question', required: false, options: [] }]);
+                            }} className="text-[8px] font-black uppercase text-emerald-700 bg-white px-2 py-1 rounded border shadow-sm">+ Question</button>
+                            <button onClick={() => { if (window.confirm('Delete form?')) { removeItem('forms', activeFormId, 'form'); setActiveFormId(null); } }} className="text-red-300 font-bold px-1">×</button>
+                          </div>
+                        </div>
+
+                        <div className="divide-y divide-slate-50">
+                          {forms.find(f => f.id === activeFormId)?.fields?.map((field, idx) => (
+                            <div
+                              key={field.id}
+                              draggable
+                              onDragStart={(e) => onQuestionDragStart(e, idx)}
+                              onDragOver={onQuestionDragOver}
+                              onDrop={(e) => onQuestionDrop(e, idx, activeFormId)}
+                              className="p-2 px-4 hover:bg-slate-50/50 transition-colors cursor-grab active:cursor-grabbing group border-b border-slate-50 last:border-none"
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* THE GRIP HANDLE */}
+                                <div className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                  <GripVertical size={14} />
+                                </div>
+
+                                <input
+                                  className="flex-1 text-[10px] font-bold text-slate-700 outline-none bg-transparent"
+                                  defaultValue={field.label}
+                                  onBlur={(e) => {
+                                    let fs = [...forms.find(f => f.id === activeFormId).fields];
+                                    fs[idx].label = e.target.value;
+                                    updateFormFields(activeFormId, fs);
+                                  }}
+                                />
+
+                                <select
+                                  className="text-[8px] font-black uppercase bg-slate-100 rounded px-1.5 py-0.5 outline-none border-none text-slate-500"
+                                  value={field.type}
+                                  onChange={(e) => {
+                                    let fs = [...forms.find(f => f.id === activeFormId).fields];
+                                    fs[idx].type = e.target.value;
+                                    updateFormFields(activeFormId, fs);
+                                  }}
+                                >
+                                  <option value="text">Short</option>
+                                  <option value="paragraph">Long</option>
+                                  <option value="dropdown">Drop</option>
+                                  <option value="radio">Choice</option>
+                                  <option value="checkbox">Check</option>
+                                </select>
+
+                                <button
+                                  onClick={() => {
+                                    let fs = forms.find(f => f.id === activeFormId).fields.filter(f => f.id !== field.id);
+                                    updateFormFields(activeFormId, fs);
+                                  }}
+                                  className="text-red-200 hover:text-red-500 font-bold px-1"
+                                >
+                                  ×
+                                </button>
+                              </div>
+
+                              {(field.type === 'dropdown' || field.type === 'radio' || field.type === 'checkbox') && (
+                                <div className="mt-1 ml-6">
+                                  <input
+                                    className="w-full bg-transparent border-b border-dashed border-slate-100 text-[9px] text-emerald-600 outline-none italic"
+                                    placeholder="Options separated by commas..."
+                                    defaultValue={field.options?.join(', ')}
+                                    onBlur={(e) => {
+                                      let fs = [...forms.find(f => f.id === activeFormId).fields];
+                                      fs[idx].options = e.target.value.split(',').map(s => s.trim()).filter(s => s !== "");
+                                      updateFormFields(activeFormId, fs);
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {regSubTab === 'responses' && (
+                  <div className="space-y-4">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                      {forms.map(form => (
+                        <button key={form.id} onClick={() => setActiveFormId(form.id)} className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase whitespace-nowrap transition-all ${activeFormId === form.id ? 'bg-emerald-900 text-white' : 'bg-white text-slate-400 border-slate-100'}`}>{form.title}</button>
+                      ))}
+                    </div>
+
+                    {activeFormId && (
+                      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                        <div className="p-2 bg-slate-50 border-b flex justify-between items-center px-4">
+                          <span className="text-[9px] font-black text-emerald-900 uppercase">Records: {responses.filter(r => r.formTitle === forms.find(f => f.id === activeFormId)?.title).length}</span>
+                          <button onClick={() => {
+                            const f = forms.find(f => f.id === activeFormId);
+                            const r = responses.filter(res => res.formTitle === f.title);
+                            const csv = "Date,Status," + f.fields.map(field => field.label).join(",") + "\n" + r.map(res => [new Date(res.submittedAt).toLocaleDateString(), res.status, ...f.fields.map(field => res[field.label] || '')].join(",")).join("\n");
+                            const link = document.createElement("a"); link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv)); link.setAttribute("download", `${f.title}_Export.csv`); link.click();
+                          }} className="text-[8px] font-black uppercase text-emerald-700 bg-white px-2 py-1 rounded border shadow-sm italic">Export CSV</button>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left">
+                            <thead className="bg-slate-50 border-b border-slate-100">
+                              <tr>
+                                <th className="p-3 text-[7px] font-black uppercase text-slate-400">Status</th>
+                                {forms.find(f => f.id === activeFormId)?.fields?.map(f => (
+                                  <th key={f.id} className="p-3 text-[7px] font-black uppercase text-slate-400 whitespace-nowrap">{f.label}</th>
+                                ))}
+                                <th className="p-3"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                              {responses.filter(r => r.formTitle === forms.find(f => f.id === activeFormId)?.title).map(res => (
+                                <tr key={res.id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="p-3">
+                                    <button
+                                      onClick={() => updateField('responses', res.id, {
+                                        status: res.status === 'Confirmed' ? 'Pending' : 'Confirmed'
+                                      })}
+                                      className={`group relative w-16 h-6 rounded-full transition-all duration-300 flex items-center px-1 ${res.status === 'Confirmed' ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                                    >
+                                      <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 transform ${res.status === 'Confirmed' ? 'translate-x-10' : 'translate-x-0'}`} />
+                                      <span className={`absolute text-[6px] font-black uppercase transition-all ${res.status === 'Confirmed' ? 'left-2 text-white' : 'right-2 text-slate-400'}`}>
+                                        {res.status === 'Confirmed' ? 'Confirm' : 'Pending'}
+                                      </span>
+                                    </button>
+                                  </td>
+                                  {forms.find(f => f.id === activeFormId)?.fields?.map(f => (
+                                    <td key={f.id} className="p-3 text-[9px] font-bold text-slate-600">{res[f.label] || '-'}</td>
+                                  ))}
+                                  <td className="p-3 text-right">
+                                    <button onClick={() => removeItem('responses', res.id, 'response')} className="text-red-200 font-bold">×</button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </main >
       </div >
@@ -838,24 +1052,38 @@ export default function ChurchPortal() {
           </div>
         </div>
 
-        {/* BOTTOM ROW: Optimized for No-Overlap and No-Scroll on Web */}
-        <div className="bg-[#F4F1E8] border-b border-gray-200 py-1">
-          <div className="flex flex-wrap md:flex-nowrap justify-center items-center gap-y-1 gap-x-2 md:gap-8 px-4 max-w-4xl mx-auto h-auto md:h-12">
-            {['home', 'vision', 'floor', 'program', 'logistics', 'committees', 'register'].map(t => (
-              <button
-                key={t}
-                onClick={() => setActiveTab(t)}
-                className={`text-[8px] md:text-[11px] font-black uppercase tracking-tight transition-all px-2 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'
-                  }`}
-              >
-                {t}
-              </button>
-            ))}
+        {/* BOTTOM ROW: Balanced Wrapping & Tight Spacing */}
+        <div className="bg-[#F4F1E8] border-b border-gray-200 py-0.5 md:py-0">
+          <div className="flex flex-wrap justify-center items-center gap-x-1 md:gap-8 px-2 max-w-4xl mx-auto h-auto min-h-[32px] md:h-12">
+            {/* Group 1: The Core Info */}
+            <div className="flex justify-center items-center">
+              {['home', 'vision', 'program', 'register'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTab(t)}
+                  className={`text-[8px] md:text-[11px] font-black uppercase tracking-tighter transition-all px-2 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'}`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            {/* Group 2: The Logistics */}
+            <div className="flex justify-center items-center">
+              {['map', 'logistics', 'committees'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTab(t)}
+                  className={`text-[8px] md:text-[11px] font-black uppercase tracking-tighter transition-all px-2 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'}`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </nav>
 
-      <main className="px-6 max-w-7xl mx-auto pb-20 pt-44 md:pt-52">
+      <main className="px-6 max-w-7xl mx-auto pb-20 pt-32 md:pt-40">
         <header className="text-center mb-12 animate-in fade-in duration-1000">
           <h1 className="text-4xl md:text-7xl font-serif text-emerald-900 mb-2 italic tracking-tight">{siteContent.mainTitle}</h1>
           <p className="text-[#C5A021] font-bold tracking-[0.25em] text-[10px] md:text-sm mb-6 uppercase">{siteContent.subTitle}</p>
@@ -903,7 +1131,7 @@ export default function ChurchPortal() {
           </div>
         )}
 
-        {activeTab === 'floor' && (
+        {activeTab === 'map' && (
           <div className="animate-in fade-in duration-500 max-w-5xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
               <h3 className="font-bold text-emerald-900 uppercase text-[10px] tracking-widest italic opacity-40">{siteContent.mapHeader || 'Hall Layout Architect'}</h3>
@@ -960,6 +1188,81 @@ export default function ChurchPortal() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'register' && (
+          <div className="max-w-xl mx-auto py-10 animate-in fade-in duration-700">
+            {/* Form Selection Tabs */}
+            <div className="flex justify-center gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
+              {forms.filter(f => f.isVisible).map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setActiveFormId(f.id)}
+                  className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeFormId === f.id ? 'bg-emerald-900 text-white shadow-md' : 'text-slate-400 bg-white border border-slate-100'}`}
+                >
+                  {f.title}
+                </button>
+              ))}
+            </div>
+
+            {activeFormId && forms.find(f => f.id === activeFormId) && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const currentForm = forms.find(f => f.id === activeFormId);
+                  submitResponse({
+                    ...Object.fromEntries(new FormData(e.target).entries()),
+                    formTitle: currentForm.title
+                  });
+                }}
+                className="bg-white border border-slate-100 rounded-2xl p-6 md:p-10 shadow-sm space-y-6"
+              >
+                <h3 className="font-serif italic text-xl text-emerald-900 border-b border-slate-50 pb-3">
+                  {forms.find(f => f.id === activeFormId)?.title}
+                </h3>
+
+                {forms.find(f => f.id === activeFormId)?.fields?.map(field => (
+                  <div key={field.id} className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">{field.label}</label>
+
+                    {field.type === 'text' && (
+                      <input name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none focus:border-emerald-900 transition-all bg-transparent" placeholder="Your answer" />
+                    )}
+
+                    {field.type === 'paragraph' && (
+                      <textarea name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none focus:border-emerald-900 transition-all bg-transparent h-24 resize-none" placeholder="Your answer" />
+                    )}
+
+                    {field.type === 'dropdown' && (
+                      <select name={field.label} required={field.required} className="w-full border-b border-slate-100 py-2 text-sm outline-none bg-transparent appearance-none">
+                        <option value="">Select Option</option>
+                        {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    )}
+
+                    {(field.type === 'radio' || field.type === 'checkbox') && (
+                      <div className="pt-1 flex flex-wrap gap-4">
+                        {field.options?.map(o => (
+                          <label key={o} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                            <input
+                              type={field.type === 'radio' ? 'radio' : 'checkbox'}
+                              name={field.type === 'radio' ? field.label : `${field.label}[]`}
+                              value={o}
+                              className="accent-emerald-900"
+                            /> {o}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <button type="submit" className="w-full bg-emerald-900 text-white py-3 rounded-lg text-[10px] font-black uppercase tracking-widest mt-6 shadow-lg active:scale-95 transition-all">
+                  Submit Registration
+                </button>
+              </form>
+            )}
           </div>
         )}
 
