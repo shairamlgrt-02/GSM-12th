@@ -221,12 +221,36 @@ export default function ChurchPortal() {
           </div>
         );
       case 'countdown':
+        const [timeLeft, setTimeLeft] = useState({ d: 0, h: 0, m: 0, s: 0 });
+
+        useEffect(() => {
+          const timer = setInterval(() => {
+            const target = new Date(block.content || Date.now()).getTime();
+            const now = new Date().getTime();
+            const gap = target - now;
+
+            if (gap > 0) {
+              setTimeLeft({
+                d: Math.floor(gap / (1000 * 60 * 60 * 24)),
+                h: Math.floor((gap % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                m: Math.floor((gap % (1000 * 60 * 60)) / (1000 * 60)),
+                s: Math.floor((gap % (1000 * 60)) / 1000)
+              });
+            }
+          }, 1000);
+          return () => clearInterval(timer);
+        }, [block.content]);
+
         return (
           <div onClick={handleLink} className={`${commonClasses} bg-emerald-900 rounded-3xl p-8 text-center text-white shadow-xl`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 opacity-60">Counting down to the Anniversary</p>
-            <div className="font-serif italic text-3xl md:text-6xl flex justify-center gap-4">
-              {/* Note: In a real app, you'd add a small timer function here. For now, we show the target date */}
-              {block.content || 'Date Not Set'}
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-6 opacity-60">Counting down to the Anniversary</p>
+            <div className="flex justify-center gap-4 md:gap-10">
+              {[['Days', timeLeft.d], ['Hrs', timeLeft.h], ['Min', timeLeft.m], ['Sec', timeLeft.s]].map(([label, val]) => (
+                <div key={label} className="flex flex-col">
+                  <span className="font-serif italic text-3xl md:text-6xl">{String(val).padStart(2, '0')}</span>
+                  <span className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-2">{label}</span>
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -251,14 +275,46 @@ export default function ChurchPortal() {
           </div>
         );
       case 'slideshow':
-        const images = block.imageUrl?.split(',').map(img => img.trim()) || [];
+        const slides = block.imageUrl?.split(',').map(img => img.trim()) || [];
+        const [current, setCurrent] = useState(0);
+
+        useEffect(() => {
+          const slideTimer = setInterval(() => {
+            setCurrent(prev => (prev === slides.length - 1 ? 0 : prev + 1));
+          }, 4000); // Switches every 4 seconds
+          return () => clearInterval(slideTimer);
+        }, [slides.length]);
+
         return (
-          <div onClick={handleLink} className={`${commonClasses} flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x`}>
-            {images.map((img, i) => (
-              <img key={i} src={img} className="h-64 md:h-96 rounded-2xl shadow-lg snap-center" alt={`Slide ${i}`} />
-            ))}
+          <div onClick={handleLink} className={`${commonClasses} relative group max-w-4xl mx-auto`}>
+            <div className="overflow-hidden rounded-3xl shadow-2xl aspect-[16/9]">
+              {slides.map((img, i) => (
+                <img
+                  key={i}
+                  src={img}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+                />
+              ))}
+            </div>
+            {/* Instagram-style Dots */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-full">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white scale-125' : 'bg-white/40'}`}
+                />
+              ))}
+            </div>
           </div>
         );
+      case 'image':
+        return (
+          <div onClick={handleLink} className={commonClasses}>
+            <img src={block.imageUrl} alt="Section" className="w-full h-auto rounded-3xl shadow-lg" />
+          </div>
+        );
+
       case 'divider':
         return <div className="w-24 h-1 bg-[#C5A021]/30 mx-auto my-16 rounded-full" />;
       default:
@@ -782,14 +838,14 @@ export default function ChurchPortal() {
           </div>
         </div>
 
-        {/* BOTTOM ROW: Navigation Menu (Auto-Wrapping for Small Screens) */}
-        <div className="bg-[#F4F1E8] border-b border-gray-200 py-1 md:py-0">
-          <div className="flex flex-wrap justify-center items-center gap-y-1 gap-x-4 md:gap-12 px-4 max-w-2xl mx-auto h-auto min-h-[40px]">
-            {['home', 'vision', 'program', 'floor', 'register', 'logistics', 'committees'].map(t => (
+        {/* BOTTOM ROW: Optimized for No-Overlap and No-Scroll on Web */}
+        <div className="bg-[#F4F1E8] border-b border-gray-200 py-1">
+          <div className="flex flex-wrap md:flex-nowrap justify-center items-center gap-y-1 gap-x-2 md:gap-8 px-4 max-w-4xl mx-auto h-auto md:h-12">
+            {['home', 'vision', 'floor', 'program', 'logistics', 'committees', 'register'].map(t => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
-                className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight transition-all px-2 py-2 md:h-10 border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'
+                className={`text-[8px] md:text-[11px] font-black uppercase tracking-tight transition-all px-2 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'
                   }`}
               >
                 {t}
@@ -799,7 +855,7 @@ export default function ChurchPortal() {
         </div>
       </nav>
 
-      <main className="px-6 max-w-7xl mx-auto pb-20 pt-36">
+      <main className="px-6 max-w-7xl mx-auto pb-20 pt-44 md:pt-52">
         <header className="text-center mb-12 animate-in fade-in duration-1000">
           <h1 className="text-4xl md:text-7xl font-serif text-emerald-900 mb-2 italic tracking-tight">{siteContent.mainTitle}</h1>
           <p className="text-[#C5A021] font-bold tracking-[0.25em] text-[10px] md:text-sm mb-6 uppercase">{siteContent.subTitle}</p>
