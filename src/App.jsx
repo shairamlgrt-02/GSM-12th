@@ -29,6 +29,7 @@ export default function ChurchPortal() {
   const [logisticsCards, setLogisticsCards] = useState([]);
   const [mapObjects, setMapObjects] = useState([]);
   const [siteContent, setSiteContent] = useState(null);
+  const [homeBlocks, setHomeBlocks] = useState([]);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
 
   const [visionActs, setVisionActs] = useState(() => {
@@ -42,6 +43,9 @@ export default function ChurchPortal() {
     if (localStorage.getItem('gsm_admin') === 'true') setIsAdmin(true);
 
     onSnapshot(doc(db, 'site', 'content'), (snap) => snap.exists() && setSiteContent(snap.data()));
+    onSnapshot(query(collection(db, 'homeBlocks'), orderBy('order', 'asc')), (snap) => {
+      setHomeBlocks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
     onSnapshot(query(collection(db, 'program'), orderBy('order', 'asc')), (snap) => {
       setProgram(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
@@ -147,6 +151,27 @@ export default function ChurchPortal() {
     } else { alert('Invalid Code'); }
   };
 
+  const addHomeBlock = async (type) => {
+    const newOrder = homeBlocks.length > 0 ? Math.max(...homeBlocks.map(b => b.order || 0)) + 1 : 0;
+    await addDoc(collection(db, 'homeBlocks'), {
+      type,
+      order: newOrder,
+      title: type.toUpperCase() + ' SECTION',
+      content: '',
+      imageUrl: '',
+      isActive: true
+    });
+  };
+
+  const moveHomeBlock = async (index, direction) => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= homeBlocks.length) return;
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'homeBlocks', homeBlocks[index].id), { order: targetIndex });
+    batch.update(doc(db, 'homeBlocks', homeBlocks[targetIndex].id), { order: index });
+    await batch.commit();
+  };
+
   const MapRenderer = ({ mode, isAdminView = false }) => (
     <div className="relative w-full aspect-[1.8/1] md:aspect-[2.2/1] border-[2px] border-[#2D2D2D] bg-white overflow-hidden rounded-md mx-auto max-w-[700px]">
       {mapObjects.filter(obj => mode === 'banquet' ? obj.showInBanquet : obj.showInService).map(obj => (
@@ -192,7 +217,7 @@ export default function ChurchPortal() {
 
         <main className="max-w-7xl mx-auto p-4 md:p-10">
           <div className="flex gap-2 mb-8 overflow-x-auto no-scrollbar justify-start md:justify-center px-2">
-            {['settings', 'vision', 'floor', 'program', 'logistics', 'committees'].map(t => (
+            {['home', 'settings', 'vision', 'floor', 'program', 'logistics', 'committees'].map(t => (
               <button
                 key={t}
                 onClick={() => setAdminActiveTab(t)}
@@ -204,6 +229,83 @@ export default function ChurchPortal() {
           </div>
 
           <div className="bg-white p-4 md:p-10 rounded-2xl md:rounded-3xl border shadow-sm min-h-[600px]">
+            {adminActiveTab === 'home' && (
+              <div className="space-y-8 animate-in fade-in">
+                <div className="flex justify-between items-end border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="font-serif italic text-2xl text-emerald-900 leading-none">Home Composer</h3>
+                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-1">Landing Page Architect</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      id="blockTypeSelector"
+                      className="text-[9px] font-black uppercase border rounded-full px-4 py-2 bg-slate-50 outline-none"
+                    >
+                      <option value="hero">Hero Banner</option>
+                      <option value="countdown">Countdown</option>
+                      <option value="text">Narrative Text</option>
+                      <option value="image">Single Image</option>
+                      <option value="divider">Divider Line</option>
+                    </select>
+                    <button
+                      onClick={() => addHomeBlock(document.getElementById('blockTypeSelector').value)}
+                      className="bg-emerald-900 text-white px-5 py-2 rounded-full text-[9px] font-black uppercase shadow-md hover:bg-emerald-800 transition-all flex items-center gap-2"
+                    >
+                      <Plus size={12} /> Add Block
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {homeBlocks.map((block, index) => (
+                    <div key={block.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm group">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="flex flex-col gap-1">
+                          <button onClick={() => moveHomeBlock(index, 'up')} className="text-slate-300 hover:text-emerald-600"><ChevronUp size={14} /></button>
+                          <button onClick={() => moveHomeBlock(index, 'down')} className="text-slate-300 hover:text-emerald-600"><ChevronDown size={14} /></button>
+                        </div>
+                        <div className="flex-1">
+                          <span className="text-[7px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded uppercase tracking-widest">{block.type}</span>
+                          <input
+                            className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 outline-none mt-1"
+                            defaultValue={block.title}
+                            onBlur={(e) => updateField('homeBlocks', block.id, { title: e.target.value })}
+                          />
+                        </div>
+                        <button onClick={() => removeItem('homeBlocks', block.id, 'block')} className="text-red-200 hover:text-red-500"><Trash2 size={16} /></button>
+                      </div>
+
+                      {/* Sub-editors based on block type */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                        {(block.type === 'hero' || block.type === 'image') && (
+                          <div className="col-span-2">
+                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">Image URL</label>
+                            <input className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] outline-none" defaultValue={block.imageUrl} onBlur={(e) => updateField('homeBlocks', block.id, { imageUrl: e.target.value })} />
+                          </div>
+                        )}
+                        {block.type === 'text' && (
+                          <div className="col-span-2">
+                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">Content (Markdown Supported)</label>
+                            <textarea className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] h-24 outline-none resize-none" defaultValue={block.content} onBlur={(e) => updateField('homeBlocks', block.id, { content: e.target.value })} />
+                          </div>
+                        )}
+                        {block.type === 'countdown' && (
+                          <div className="col-span-2">
+                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">Target Event Date & Time</label>
+                            <input type="datetime-local" className="w-full bg-slate-50 border rounded-lg px-3 py-2 text-[10px] outline-none" defaultValue={block.content} onChange={(e) => updateField('homeBlocks', block.id, { content: e.target.value })} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {homeBlocks.length === 0 && (
+                    <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-3xl text-slate-300 font-bold uppercase tracking-widest">
+                      Your Landing Page is empty. Start adding blocks!
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {adminActiveTab === 'settings' && (
               <div className="space-y-8 max-w-2xl animate-in fade-in">
                 <div className="border-b pb-4">
@@ -557,15 +659,14 @@ export default function ChurchPortal() {
           </div>
         </div>
 
-        {/* BOTTOM ROW: Navigation Menu (Snug on Web & Mobile) */}
-        <div className="bg-[#F4F1E8] border-b border-gray-200">
-          {/* Adding max-w-2xl and mx-auto keeps the tabs grouped together in the center on Web */}
-          <div className="flex justify-between md:justify-center items-center h-10 px-4 md:gap-12 max-w-2xl mx-auto overflow-x-auto no-scrollbar scrollbar-hide">
+        {/* BOTTOM ROW: Navigation Menu (Auto-Wrapping for Small Screens) */}
+        <div className="bg-[#F4F1E8] border-b border-gray-200 py-1 md:py-0">
+          <div className="flex flex-wrap justify-center items-center gap-y-1 gap-x-4 md:gap-12 px-4 max-w-2xl mx-auto h-auto min-h-[40px]">
             {['vision', 'floor', 'program', 'logistics', 'committees'].map(t => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
-                className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight transition-all px-2 h-full border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'
+                className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight transition-all px-2 py-2 md:h-10 border-b-2 flex items-center whitespace-nowrap ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'
                   }`}
               >
                 {t}
