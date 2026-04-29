@@ -47,6 +47,10 @@ const AdminDashboard = ({
         </div>
 
         <div className="bg-white p-4 md:p-10 rounded-2xl md:rounded-3xl border shadow-sm min-h-[600px]">
+
+
+
+{/*==================== SECTION: HOME COMPOSER ====================*/}
           {adminActiveTab === 'home' && (
             <div className="space-y-4 animate-in fade-in">
               <div className="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -139,8 +143,9 @@ const AdminDashboard = ({
                                 placeholder="Card Title"
                                 defaultValue={item.title}
                                 onBlur={(e) => {
-                                  const newItems = [...block.items];
-                                  newItems[index].title = e.target.value;
+                                  const newItems = block.items.map((item, i) => 
+                                    i === index ? { ...item, title: e.target.value } : item
+                                  );
                                   updateField('homeBlocks', block.id, { items: newItems });
                                 }}
                               />
@@ -160,8 +165,9 @@ const AdminDashboard = ({
                               placeholder="Image URL (i.ibb.co...)"
                               defaultValue={item.imageUrl}
                               onBlur={(e) => {
-                                const newItems = [...block.items];
-                                newItems[index].imageUrl = e.target.value;
+                                const newItems = block.items.map((item, i) => 
+                                  i === index ? { ...item, imageUrl: e.target.value } : item
+                                );
                                 updateField('homeBlocks', block.id, { items: newItems });
                               }}
                             />
@@ -230,6 +236,10 @@ const AdminDashboard = ({
               </div>
             </div>
           )}
+
+
+
+{/* ==================== SECTION: SETTINGS, BRANDING & TITLES ====================*/}
           {adminActiveTab === 'settings' && (
             <div className="space-y-8 max-w-2xl animate-in fade-in">
               <div className="border-b pb-4">
@@ -252,7 +262,7 @@ const AdminDashboard = ({
               </div>
             </div>
           )}
-
+{/* ==================== SECTION: VISION ====================*/}
           {adminActiveTab === 'vision' && (
             <div className="space-y-12 animate-in fade-in">
               <div className="space-y-6">
@@ -293,6 +303,9 @@ const AdminDashboard = ({
             </div>
           )}
 
+
+
+{/* ==================== SECTION: FLOOR MAP ====================*/}
           {adminActiveTab === 'map' && (
             <div className="space-y-8 animate-in fade-in">
               <div className="bg-emerald-50/50 p-4 md:p-6 rounded-3xl border border-emerald-100 space-y-4 shadow-inner">
@@ -333,7 +346,7 @@ const AdminDashboard = ({
                         {['x', 'y', 'w', 'h'].map(f => (
                           <div key={f} className="flex flex-col">
                             <label className="text-[6px] font-black uppercase text-slate-300">{f}</label>
-                            <input type="number" step="0.1" className="p-1 border border-slate-50 rounded text-[9px] outline-none" value={obj[f]} onChange={(e) => updateField('mapObjects', obj.id, { [f]: parseFloat(e.target.value) })} />
+                            <input type="number" step="0.1" className="p-1 border border-slate-50 rounded text-[9px] outline-none" defaultValue={obj[f]} onBlur={(e) => updateField('mapObjects', obj.id, { [f]: parseFloat(e.target.value) })} />
                           </div>
                         ))}
                       </div>
@@ -342,7 +355,7 @@ const AdminDashboard = ({
                           {['rows', 'cols'].map(f => (
                             <div key={f} className="flex flex-col">
                               <label className="text-[6px] font-black uppercase text-slate-300">{f}</label>
-                              <input type="number" className="p-1 border border-slate-50 rounded text-[9px] outline-none" value={obj[f]} onChange={(e) => updateField('mapObjects', obj.id, { [f]: parseInt(e.target.value) })} />
+                              <input type="number" className="p-1 border border-slate-50 rounded text-[9px] outline-none" defaultValue={obj[f]} onBlur={(e) => updateField('mapObjects', obj.id, { [f]: parseInt(e.target.value) })} />
                             </div>
                           ))}
                         </div>
@@ -358,6 +371,9 @@ const AdminDashboard = ({
             </div>
           )}
 
+
+
+{/* ==================== SECTION: PROGRAM EVENT ITINERARY ====================*/}
           {adminActiveTab === 'program' && (
             <div className="space-y-6 animate-in fade-in">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-8">
@@ -453,6 +469,9 @@ const AdminDashboard = ({
             </div>
           )}
 
+
+
+{/* ==================== SECTION: LOGISTICS CATERING FOOD TRANSPO DECOR ====================*/}
           {adminActiveTab === 'logistics' && (
             <div className="space-y-12 animate-in fade-in">
               <div className="space-y-6">
@@ -505,6 +524,9 @@ const AdminDashboard = ({
             </div>
           )}
 
+
+
+{/* ==================== SECTION: COMMITEES TASK RESPONSIBILITIES CHECKLIST ====================*/}
           {adminActiveTab === 'committees' && (
             <div className="space-y-12 animate-in fade-in">
               <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b pb-6">
@@ -531,7 +553,13 @@ const AdminDashboard = ({
                             <span className="text-[7px] font-black text-slate-200 uppercase">Task {i + 1}</span>
                             <button className="text-red-300 text-[10px] opacity-0 group-hover/task:opacity-100 transition-opacity" onClick={async () => { const ts = comm.tasks.filter((_, idx) => idx !== i); await updateField('committees', comm.id, { tasks: ts }); }}>Remove</button>
                           </div>
-                          <textarea className="w-full bg-transparent text-[11px] p-0 border-none outline-none focus:text-emerald-700 font-medium leading-snug resize-none h-6" placeholder="What needs to be done?" defaultValue={t.text} onBlur={(e) => { let ts = [...comm.tasks]; ts[i].text = e.target.value; updateField('committees', comm.id, { tasks: ts }); }} />
+                          <textarea className="w-full bg-transparent text-[11px] p-0 border-none outline-none focus:text-emerald-700 font-medium leading-snug resize-none h-6" placeholder="What needs to be done?" defaultValue={t.text}
+                          onBlur={(e) => {
+  const updatedTasks = comm.tasks.map((task, idx) => 
+    idx === i ? { ...task, text: e.target.value } : task
+  );
+  updateField('committees', comm.id, { tasks: updatedTasks });
+}} />
                           <div className="grid grid-cols-2 gap-3 pt-1">
                             <div><label className="text-[6px] font-black text-slate-300 uppercase">Deadline</label><input type="date" className="w-full text-[10px] p-0 bg-transparent border-b border-slate-100 outline-none" defaultValue={t.dueDate} onChange={(e) => { let ts = [...comm.tasks]; ts[i].dueDate = e.target.value; updateField('committees', comm.id, { tasks: ts }); }} /></div>
                             <div><label className="text-[6px] font-black text-slate-300 uppercase">Owner</label><input type="text" className="w-full text-[10px] p-0 bg-transparent border-b border-slate-100 font-bold uppercase outline-none" placeholder="USER" defaultValue={t.assignee} onBlur={(e) => { let ts = [...comm.tasks]; ts[i].assignee = e.target.value; updateField('committees', comm.id, { tasks: ts }); }} /></div>
@@ -546,6 +574,9 @@ const AdminDashboard = ({
             </div>
           )}
 
+         
+         
+{/* ==================== SECTION: DATABASE & RESPONSES ====================*/}
           {adminActiveTab === 'registration' && (
             <div className="space-y-4 animate-in fade-in max-w-4xl mx-auto">
               <div className="flex gap-4 border-b border-slate-100 mb-2">
