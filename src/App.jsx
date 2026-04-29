@@ -56,9 +56,11 @@ export default function ChurchPortal() {
   const handleTabChange = (tabName) => {
     setActiveTab(tabName);
 
-    // Update Browser History
+    // We update the URL to ?page=tabName
+    // This allows the back button to work without breaking your ID links
     window.history.pushState({ tab: tabName }, '', `?page=${tabName}`);
 
+    // If there is an ID in the URL, we still want to respect it
     const urlParams = new URLSearchParams(window.location.search);
     const idParam = urlParams.get('id');
 
@@ -78,13 +80,21 @@ export default function ChurchPortal() {
       const urlParams = new URLSearchParams(window.location.search);
       const pageParam = urlParams.get('page') || 'home';
       const idParam = urlParams.get('id');
+
+      // Update the main tab
       setActiveTab(pageParam);
-      if (pageParam === 'register' && idParam) setActiveFormId(idParam);
+
+      // Update the specific Form or Event if the ID is there
+      if (pageParam === 'register' && idParam) {
+        setActiveFormId(idParam);
+      }
       if (pageParam === 'program' && idParam) {
         setActiveEventId(idParam);
         setActiveEventSubTab(idParam);
       }
     };
+
+    // This is the "Live Feed" from the browser's back/forward buttons
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [forms, masterEvents]);
