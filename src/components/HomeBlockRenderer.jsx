@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
+const getButtonStyle = (style) => {
+  switch (style) {
+    case 'outline':
+      return "bg-transparent border-2 border-emerald-900 text-emerald-900 hover:bg-emerald-50";
+    case 'gold':
+      return "bg-[#C5A021] text-white shadow-md hover:bg-[#b08e1d]";
+    case 'solid':
+    default:
+      return "bg-emerald-900 text-white shadow-md hover:bg-emerald-800";
+  }
+};
+
 const HomeBlockRenderer = ({ block, setActiveTab }) => {
   const handleLink = () => {
     if (block.linkTo) processLink(block.linkTo);
@@ -128,87 +140,87 @@ const HomeBlockRenderer = ({ block, setActiveTab }) => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          processLink(item.ctaLink); // Clean and simple!
+                          processLink(item.ctaLink);
                         }}
-                        className="bg-emerald-900 text-white px-6 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all"
-                        >
-                          {item.ctaText}
-                        </button>
-                  ) : (
-                  <div className="h-[18px] md:h-[24px]" />
+                        className={`px-6 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all ${getButtonStyle(item.ctaStyle)}`}
+                      >
+                        {item.ctaText}
+                      </button>
+                    ) : (
+                      <div className="h-[18px] md:h-[24px]" />
                     )}
+                  </div>
                 </div>
               </div>
-              </div>
-      );
-  })
-}
+            );
+          })
+          }
         </div >
       );
     case 'text':
-return (
-  <div id={block.id} onClick={handleLink} className={`${commonClasses} max-w-3xl mx-auto text-center py-12`}>
-    <h2 className="font-serif italic text-3xl text-emerald-900 mb-6">{block.title}</h2>
-    <div className="text-slate-600 text-sm md:text-base leading-relaxed whitespace-pre-line px-4">
-      {block.content}
-    </div>
-  </div>
-);
-    case 'slideshow':
-const slides = block.slides || [];
-const [current, setCurrent] = useState(0);
-
-useEffect(() => {
-  if (slides.length <= 1) return;
-  const slideTimer = setInterval(() => {
-    setCurrent(prev => (prev === slides.length - 1 ? 0 : prev + 1));
-  }, 5000);
-  return () => clearInterval(slideTimer);
-}, [slides.length]);
-
-if (slides.length === 0) return null;
-
-return (
-  <div className={`${commonClasses} relative group max-w-4xl mx-auto`}>
-    <div id={block.id}
-      onClick={() => slides[current]?.link && processLink(slides[current].link)}
-      className={`overflow-hidden rounded-3xl ... ${slides[current]?.link ? 'cursor-pointer' : ''}`}
-    >
-      {slides.map((slide, i) => (
-        <img
-          key={i}
-          src={slide.url}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}
-          alt=""
-        />
-      ))}
-      {slides[current]?.link && (
-        <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest border border-white/20">
-          Click to View
+      return (
+        <div id={block.id} onClick={handleLink} className={`${commonClasses} max-w-3xl mx-auto text-center py-12`}>
+          <h2 className="font-serif italic text-3xl text-emerald-900 mb-6">{block.title}</h2>
+          <div className="text-slate-600 text-sm md:text-base leading-relaxed whitespace-pre-line px-4">
+            {block.content}
+          </div>
         </div>
-      )}
-    </div>
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-full z-10">
-      {slides.map((_, i) => (
-        <button
-          key={i}
-          onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
-          className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white scale-125' : 'bg-white/40'}`}
-        />
-      ))}
-    </div>
-  </div>
-);
+      );
+    case 'slideshow':
+      const slides = block.slides || [];
+      const [current, setCurrent] = useState(0);
+
+      useEffect(() => {
+        if (slides.length <= 1) return;
+        const slideTimer = setInterval(() => {
+          setCurrent(prev => (prev === slides.length - 1 ? 0 : prev + 1));
+        }, 5000);
+        return () => clearInterval(slideTimer);
+      }, [slides.length]);
+
+      if (slides.length === 0) return null;
+
+      return (
+        <div className={`${commonClasses} relative group max-w-4xl mx-auto`}>
+          <div id={block.id}
+            onClick={() => slides[current]?.link && processLink(slides[current].link)}
+            className={`overflow-hidden rounded-3xl ... ${slides[current]?.link ? 'cursor-pointer' : ''}`}
+          >
+            {slides.map((slide, i) => (
+              <img
+                key={i}
+                src={slide.url}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+                alt=""
+              />
+            ))}
+            {slides[current]?.link && (
+              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest border border-white/20">
+                Click to View
+              </div>
+            )}
+          </div>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-full z-10">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white scale-125' : 'bg-white/40'}`}
+              />
+            ))}
+          </div>
+        </div>
+      );
     case 'image':
-return (
-  <div id={block.id} onClick={handleLink} className={commonClasses}>
-    <img src={block.imageUrl} alt="Section" className="w-full h-auto rounded-3xl shadow-lg" />
-  </div>
-);
+      return (
+        <div id={block.id} onClick={handleLink} className={commonClasses}>
+          <img src={block.imageUrl} alt="Section" className="w-full h-auto rounded-3xl shadow-lg" />
+        </div>
+      );
     case 'divider':
-return <div className="w-24 h-1 bg-[#C5A021]/30 mx-auto my-16 rounded-full" />;
+      return <div className="w-24 h-1 bg-[#C5A021]/30 mx-auto my-16 rounded-full" />;
     default:
-return null;
+      return null;
   }
 };
 export default HomeBlockRenderer;
