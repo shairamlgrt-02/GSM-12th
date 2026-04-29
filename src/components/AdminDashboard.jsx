@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronUp, ChevronDown, Eye, EyeOff, Trash2, GripVertical, Plus } from 'lucide-react';
+import { ChevronUp, ChevronDown, Eye, EyeOff, Trash2, GripVertical, Plus, Link } from 'lucide-react';
 import MapRenderer from './MapRenderer';
 
 const isOverdue = (dateStr) => {
@@ -50,7 +50,7 @@ const AdminDashboard = ({
 
 
 
-{/*==================== SECTION: HOME COMPOSER ====================*/}
+          {/*==================== SECTION: HOME COMPOSER ====================*/}
           {adminActiveTab === 'home' && (
             <div className="space-y-4 animate-in fade-in">
               <div className="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -116,6 +116,18 @@ const AdminDashboard = ({
                           <option value="register">Register</option>
                         </select>
 
+                        <button
+                          onClick={() => {
+                            const link = `${window.location.origin}/?page=home&id=${block.id}`;
+                            navigator.clipboard.writeText(link);
+                            alert("Home Block Link Copied!");
+                          }}
+                          className="p-1 text-slate-300 hover:text-emerald-600 transition-colors"
+                          title="Copy Section Link"
+                        >
+                          <Link size={12} />
+                        </button>
+
                         <button onClick={() => removeItem('homeBlocks', block.id, 'block')} className="text-red-200 hover:text-red-500 font-bold px-2 shrink-0">×</button>
                       </div>
                     </div>
@@ -143,7 +155,7 @@ const AdminDashboard = ({
                                 placeholder="Card Title"
                                 defaultValue={item.title}
                                 onBlur={(e) => {
-                                  const newItems = block.items.map((item, i) => 
+                                  const newItems = block.items.map((item, i) =>
                                     i === index ? { ...item, title: e.target.value } : item
                                   );
                                   updateField('homeBlocks', block.id, { items: newItems });
@@ -165,7 +177,7 @@ const AdminDashboard = ({
                               placeholder="Image URL (i.ibb.co...)"
                               defaultValue={item.imageUrl}
                               onBlur={(e) => {
-                                const newItems = block.items.map((item, i) => 
+                                const newItems = block.items.map((item, i) =>
                                   i === index ? { ...item, imageUrl: e.target.value } : item
                                 );
                                 updateField('homeBlocks', block.id, { items: newItems });
@@ -239,7 +251,7 @@ const AdminDashboard = ({
 
 
 
-{/* ==================== SECTION: SETTINGS, BRANDING & TITLES ====================*/}
+          {/* ==================== SECTION: SETTINGS, BRANDING & TITLES ====================*/}
           {adminActiveTab === 'settings' && (
             <div className="space-y-8 max-w-2xl animate-in fade-in">
               <div className="border-b pb-4">
@@ -262,7 +274,7 @@ const AdminDashboard = ({
               </div>
             </div>
           )}
-{/* ==================== SECTION: VISION ====================*/}
+          {/* ==================== SECTION: VISION ====================*/}
           {adminActiveTab === 'vision' && (
             <div className="space-y-12 animate-in fade-in">
               <div className="space-y-6">
@@ -305,7 +317,7 @@ const AdminDashboard = ({
 
 
 
-{/* ==================== SECTION: FLOOR MAP ====================*/}
+          {/* ==================== SECTION: FLOOR MAP ====================*/}
           {adminActiveTab === 'map' && (
             <div className="space-y-8 animate-in fade-in">
               <div className="bg-emerald-50/50 p-4 md:p-6 rounded-3xl border border-emerald-100 space-y-4 shadow-inner">
@@ -373,7 +385,7 @@ const AdminDashboard = ({
 
 
 
-{/* ==================== SECTION: PROGRAM EVENT ITINERARY ====================*/}
+          {/* ==================== SECTION: PROGRAM EVENT ITINERARY ====================*/}
           {adminActiveTab === 'program' && (
             <div className="space-y-6 animate-in fade-in">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-8">
@@ -404,6 +416,17 @@ const AdminDashboard = ({
                       <button onClick={() => moveRank(index, 'down')} className="p-1 hover:text-emerald-600 text-slate-300"><ChevronDown size={12} /></button>
                       <button onClick={() => updateField('masterEvents', ev.id, { isActive: !ev.isActive })} className="p-1">
                         {ev.isActive !== false ? <Eye size={12} className="text-emerald-600" /> : <EyeOff size={12} className="text-red-300" />}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const link = `${window.location.origin}/?page=program&id=${ev.id}`;
+                          navigator.clipboard.writeText(link);
+                          alert("Event Smart Link Copied!");
+                        }}
+                        className="p-1 text-slate-300 hover:text-emerald-600 transition-colors"
+                        title="Copy Event Link"
+                      >
+                        <Link size={12} />
                       </button>
                       <button onClick={() => removeItem('masterEvents', ev.id, 'event')} className="p-1 text-red-200 hover:text-red-500"><Trash2 size={12} /></button>
                     </div>
@@ -471,7 +494,7 @@ const AdminDashboard = ({
 
 
 
-{/* ==================== SECTION: LOGISTICS CATERING FOOD TRANSPO DECOR ====================*/}
+          {/* ==================== SECTION: LOGISTICS CATERING FOOD TRANSPO DECOR ====================*/}
           {adminActiveTab === 'logistics' && (
             <div className="space-y-12 animate-in fade-in">
               <div className="space-y-6">
@@ -526,7 +549,7 @@ const AdminDashboard = ({
 
 
 
-{/* ==================== SECTION: COMMITEES TASK RESPONSIBILITIES CHECKLIST ====================*/}
+          {/* ==================== SECTION: COMMITEES TASK RESPONSIBILITIES CHECKLIST ====================*/}
           {adminActiveTab === 'committees' && (
             <div className="space-y-12 animate-in fade-in">
               <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b pb-6">
@@ -554,12 +577,12 @@ const AdminDashboard = ({
                             <button className="text-red-300 text-[10px] opacity-0 group-hover/task:opacity-100 transition-opacity" onClick={async () => { const ts = comm.tasks.filter((_, idx) => idx !== i); await updateField('committees', comm.id, { tasks: ts }); }}>Remove</button>
                           </div>
                           <textarea className="w-full bg-transparent text-[11px] p-0 border-none outline-none focus:text-emerald-700 font-medium leading-snug resize-none h-6" placeholder="What needs to be done?" defaultValue={t.text}
-                          onBlur={(e) => {
-  const updatedTasks = comm.tasks.map((task, idx) => 
-    idx === i ? { ...task, text: e.target.value } : task
-  );
-  updateField('committees', comm.id, { tasks: updatedTasks });
-}} />
+                            onBlur={(e) => {
+                              const updatedTasks = comm.tasks.map((task, idx) =>
+                                idx === i ? { ...task, text: e.target.value } : task
+                              );
+                              updateField('committees', comm.id, { tasks: updatedTasks });
+                            }} />
                           <div className="grid grid-cols-2 gap-3 pt-1">
                             <div><label className="text-[6px] font-black text-slate-300 uppercase">Deadline</label><input type="date" className="w-full text-[10px] p-0 bg-transparent border-b border-slate-100 outline-none" defaultValue={t.dueDate} onChange={(e) => { let ts = [...comm.tasks]; ts[i].dueDate = e.target.value; updateField('committees', comm.id, { tasks: ts }); }} /></div>
                             <div><label className="text-[6px] font-black text-slate-300 uppercase">Owner</label><input type="text" className="w-full text-[10px] p-0 bg-transparent border-b border-slate-100 font-bold uppercase outline-none" placeholder="USER" defaultValue={t.assignee} onBlur={(e) => { let ts = [...comm.tasks]; ts[i].assignee = e.target.value; updateField('committees', comm.id, { tasks: ts }); }} /></div>
@@ -574,9 +597,9 @@ const AdminDashboard = ({
             </div>
           )}
 
-         
-         
-{/* ==================== SECTION: DATABASE & RESPONSES ====================*/}
+
+
+          {/* ==================== SECTION: DATABASE & RESPONSES ====================*/}
           {adminActiveTab === 'registration' && (
             <div className="space-y-4 animate-in fade-in max-w-4xl mx-auto">
               <div className="flex gap-4 border-b border-slate-100 mb-2">
@@ -589,7 +612,26 @@ const AdminDashboard = ({
                 <div className="space-y-4">
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
                     {forms.map(form => (
-                      <button key={form.id} onClick={() => setActiveFormId(form.id)} className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase whitespace-nowrap transition-all ${activeFormId === form.id ? 'bg-emerald-900 text-white border-emerald-900 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}>{form.title}</button>
+                      <div key={form.id} className="flex items-center gap-1 bg-white border border-slate-100 rounded-lg p-0.5 shadow-sm">
+                        <button
+                          onClick={() => setActiveFormId(form.id)}
+                          className={`px-3 py-1 text-[9px] font-black uppercase whitespace-nowrap transition-all rounded-md ${activeFormId === form.id ? 'bg-emerald-900 text-white' : 'text-slate-400 hover:text-emerald-900'}`}
+                        >
+                          {form.title}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const link = `${window.location.origin}/?page=register&id=${form.id}`;
+                            navigator.clipboard.writeText(link);
+                            alert(`Link for ${form.title} copied!`);
+                          }}
+                          className="p-1.5 text-slate-300 hover:text-emerald-600 transition-colors"
+                          title="Copy Direct Link"
+                        >
+                          <Link size={10} />
+                        </button>
+                      </div>
                     ))}
                     <button onClick={createNewForm} className="px-3 py-1.5 border border-dashed rounded-lg text-[9px] font-black text-slate-300 hover:bg-slate-50">+ New Form</button>
                   </div>
@@ -599,6 +641,17 @@ const AdminDashboard = ({
                       <div className="p-2 bg-slate-50 border-b flex justify-between items-center px-4">
                         <input className="bg-transparent font-bold text-emerald-900 text-[11px] outline-none" defaultValue={forms.find(f => f.id === activeFormId)?.title} onBlur={(e) => updateField('forms', activeFormId, { title: e.target.value })} />
                         <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              const link = `${window.location.origin}/?page=register&id=${activeFormId}`;
+                              navigator.clipboard.writeText(link);
+                              alert("Registration Link Copied!");
+                            }}
+                            className="p-1 text-slate-400 hover:text-emerald-600 transition-colors"
+                            title="Copy Form Link"
+                          >
+                            <Link size={12} />
+                          </button>
                           <button onClick={() => updateField('forms', activeFormId, { isVisible: !forms.find(f => f.id === activeFormId)?.isVisible })} className="text-slate-400">
                             {forms.find(f => f.id === activeFormId)?.isVisible ? <Eye size={12} className="text-emerald-600" /> : <EyeOff size={12} />}
                           </button>
