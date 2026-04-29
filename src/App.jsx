@@ -12,6 +12,15 @@ const isOverdue = (dateStr) => {
 export default function ChurchPortal() {
   const [view, setView] = useState('public');
   const [activeTab, setActiveTab] = useState('home');
+
+  const handleTabChange = (tabName) => {
+    setActiveTab(tabName);
+    if (tabName === 'register' && forms.length > 0) {
+      const firstVisibleForm = forms.find(f => f.isVisible) || forms[0];
+      setActiveFormId(firstVisibleForm.id);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [adminActiveTab, setAdminActiveTab] = useState('home');
   const [activeProgramId, setActiveProgramId] = useState(null);
   const [isBanquet, setIsBanquet] = useState(false);
@@ -33,6 +42,15 @@ export default function ChurchPortal() {
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const [forms, setForms] = useState([]);
   const [activeFormId, setActiveFormId] = useState(null);
+  useEffect(() => {
+    if (activeTab === 'register' && forms.length > 0) {
+      const firstVisibleForm = forms.find(f => f.isVisible) || forms[0];
+      if (firstVisibleForm) {
+        setActiveFormId(firstVisibleForm.id);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeTab, forms]);
   const [responses, setResponses] = useState([]);
   const [regSubTab, setRegSubTab] = useState('builder');
 
@@ -40,6 +58,8 @@ export default function ChurchPortal() {
     const saved = localStorage.getItem('gsm_vision_cache');
     return saved ? JSON.parse(saved) : [];
   });
+  const [isPrivateUnlocked, setIsPrivateUnlocked] = useState(false);
+  const [passInput, setPassInput] = useState('');
 
   const SECRET_CODE = 'GSM2026';
 
@@ -343,7 +363,7 @@ export default function ChurchPortal() {
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}
-                > 
+                >
                   {/* Dark Emerald Overlay for readability */}
                   {hasImage && (
                     <div className="absolute inset-0 bg-emerald-950/0 z-0" />
@@ -1364,13 +1384,18 @@ export default function ChurchPortal() {
 
           {activeTab === 'register' && (
             <div className="max-w-xl mx-auto animate-in fade-in pt-0">
-              {/* Form Selection Tabs */}
-              <div className="flex justify-center gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
+              {/* Form Selection Tabs - Matching the Program Style */}
+              <div className="flex flex-wrap bg-emerald-900/5 p-1 rounded-xl gap-2 shadow-inner mb-10">
                 {forms.filter(f => f.isVisible).map(f => (
                   <button
                     key={f.id}
                     onClick={() => setActiveFormId(f.id)}
-                    className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeFormId === f.id ? 'bg-emerald-900 text-white shadow-md' : 'text-slate-400 bg-white border border-slate-100'}`}
+                    className={`
+                    flex-1 min-w-[120px] py-2 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-500
+                    ${activeFormId === f.id
+                        ? 'bg-emerald-900 text-white shadow-md'
+                        : 'text-emerald-900/40 hover:text-emerald-900'}
+                  `}
                   >
                     {f.title}
                   </button>
@@ -1437,72 +1462,167 @@ export default function ChurchPortal() {
             </div>
           )}
 
-          {activeTab === 'logistics' && (
-            <div className="animate-in fade-in pt-0">
-              <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit">
-                <div className="bg-emerald-900 p-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-                  <h3 className="font-serif italic text-white text-lg tracking-tight leading-none">{siteContent?.cateringHeader || 'Catering'}</h3>
-                </div>
-                <div className="divide-y divide-slate-50">
-                  {catering.map((item, i) => (
-                    <div key={i} className="p-4 hover:bg-slate-50 transition-all flex flex-col gap-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">{item.group}</span>
-                        {item.person && <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">PIC: {item.person}</span>}
-                      </div>
-                      <span className="text-[11px] md:text-[13px] font-bold text-emerald-900 tracking-tight leading-tight">{item.dish}</span>
+          {(activeTab === 'logistics' || activeTab === 'committees') && (
+            <div className="max-w-4xl mx-auto py-10 px-4 animate-in fade-in duration-700">
+              {/* Independent Password Protection Gate */}
+              {!isPrivateUnlocked ? (
+                <div className="max-w-md mx-auto mt-10">
+                  <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-emerald-900/5 text-center">
+                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-8 h-8 text-emerald-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002-2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
                     </div>
-                  ))}
-                  {siteContent?.paxNote && (
-                    <div className="p-4 bg-slate-50 border-t border-slate-100">
-                      <p className="text-[10px] italic text-slate-500 font-medium tracking-tight">Note: {siteContent.paxNote}</p>
+
+                    <h2 className="font-serif italic text-xl text-emerald-900 mb-2">Private Access</h2>
+                    <p className="text-slate-300 text-[8px] uppercase tracking-[0.2em] mb-5">Enter Access Code to View Details</p>
+
+                    <div className="space-y-4">
+                      <input
+                        type="password"
+                        autoFocus
+                        className="w-full bg-slate-50 border border-transparent focus:border-emerald-100 rounded-2xl px-4 py-2 text-center text-emerald-900 tracking-widest outline-none transition-all"
+                        placeholder="enter code"
+                        value={passInput}
+                        onChange={(e) => setPassInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                          
+                            if (passInput === '123456') {
+                              setIsPrivateUnlocked(true);
+                            } else {
+                              alert('Incorrect Access Code');
+                              setPassInput('');
+                            }
+                          }
+                        }}
+                      />
+
+                      <button
+                        onClick={() => {
+                          if (passInput === '123456') {
+                            setIsPrivateUnlocked(true);
+                          } else {
+                            alert('Incorrect Access Code');
+                            setPassInput('');
+                          }
+                        }}
+                        className="w-full bg-emerald-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-900/20 hover:bg-emerald-800 transition-all active:scale-95"
+                      >
+                        Unlock Tabs
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* UNLOCKED CONTENT */
+                <div className="animate-in slide-in-from-bottom-6 duration-500">
+
+                  {/* Navigation for the private tabs */}
+                  <div className="flex bg-emerald-900/5 p-1 rounded-xl gap-2 shadow-inner mb-10 max-w-lg mx-auto">
+                    <button
+                      onClick={() => setActiveTab('logistics')}
+                      className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'logistics' ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
+                    >
+                      Logistics
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('committees')}
+                      className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'committees' ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
+                    >
+                      Committees
+                    </button>
+                  </div>
+
+                  {activeTab === 'logistics' && (
+                    <div className="animate-in fade-in pt-0 space-y-6">
+                      <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit">
+                        <div className="bg-emerald-900 p-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                          <h3 className="font-serif italic text-white text-lg tracking-tight leading-none">{siteContent?.cateringHeader || 'Catering'}</h3>
+                        </div>
+                        <div className="divide-y divide-slate-50">
+                          {catering.map((item, i) => (
+                            <div key={i} className="p-4 hover:bg-slate-50 transition-all flex flex-col gap-1">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">{item.group}</span>
+                                {item.person && <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">PIC: {item.person}</span>}
+                              </div>
+                              <span className="text-[11px] md:text-[13px] font-bold text-emerald-900 tracking-tight leading-tight">{item.dish}</span>
+                            </div>
+                          ))}
+                          {siteContent?.paxNote && (
+                            <div className="p-4 bg-slate-50 border-t border-slate-100">
+                              <p className="text-[10px] italic text-slate-500 font-medium tracking-tight">Note: {siteContent.paxNote}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        {logisticsCards.filter(card => !card.parentId).map(card => (
+                          <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-l-[6px] border-emerald-900 shadow-sm hover:shadow-md transition-all duration-500">
+                            <h4 className="font-black text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
+                            <p className="text-[11px] md:text-sm text-slate-600 leading-relaxed font-bold tracking-tight whitespace-pre-line">{card.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'committees' && (
+                    <div className="animate-in fade-in pt-0 space-y-6">
+                      <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                        <div className="flex justify-between items-end mb-1">
+                          <h3 className="font-black text-emerald-900 text-[9px] uppercase tracking-widest italic opacity-40">Event Readiness</h3>
+                          <span className="font-serif italic text-emerald-900 text-3xl tracking-tighter">
+                            {Math.round((committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden border shadow-inner">
+                          <div
+                            className="h-full bg-emerald-600 transition-all duration-1000"
+                            style={{ width: `${(committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {committees.map((comm) => (
+                          <div key={comm.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-4 border-emerald-900 shadow-sm group hover:shadow-md transition-all duration-500">
+                            <h3 className="font-bold text-emerald-900 text-xs uppercase tracking-tighter mb-4">{comm.title}</h3>
+                            <div className="space-y-2">
+                              {comm.tasks?.map((t, i) => {
+                                const overdue = !t.completed && isOverdue(t.dueDate);
+                                return (
+                                  <div key={i} className={`p-3 rounded-lg border border-slate-50 transition-all duration-500 ${t.completed ? 'bg-slate-50 opacity-40 grayscale' : 'bg-white shadow-sm'}`}>
+                                    <label className="flex items-start gap-3 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        className="mt-0.5 accent-emerald-600 w-3.5 h-3.5 rounded"
+                                        checked={t.completed || false}
+                                        onChange={async () => {
+                                          const nt = [...comm.tasks];
+                                          nt[i].completed = !nt[i].completed;
+                                          await updateField('committees', comm.id, { tasks: nt });
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <span className={`text-[10px] md:text-[11px] block font-bold tracking-tight ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{t.text}</span>
+                                        <div className="flex gap-2 mt-1 opacity-60">
+                                          {t.dueDate && <span className={`text-[7px] font-black uppercase px-1 rounded ${overdue ? 'bg-red-50 text-red-600' : 'bg-slate-100'}`}>Due: {t.dueDate}</span>}
+                                          {t.assignee && <span className="text-[7px] font-black uppercase bg-emerald-50 text-emerald-800 px-1 rounded">@{t.assignee}</span>}
+                                        </div>
+                                      </div>
+                                    </label>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="space-y-4">
-                {logisticsCards.filter(card => !card.parentId).map(card => (
-                  <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-l-[6px] border-emerald-900 shadow-sm hover:shadow-md transition-all duration-500">
-                    <h4 className="font-black text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
-                    <p className="text-[11px] md:text-sm text-slate-600 leading-relaxed font-bold tracking-tight whitespace-pre-line">{card.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'committees' && (
-            <div className="animate-in fade-in pt-0">
-              <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                <div className="flex justify-between items-end mb-1"><h3 className="font-black text-emerald-900 text-[9px] uppercase tracking-widest italic opacity-40">Event Readiness</h3><span className="font-serif italic text-emerald-900 text-3xl tracking-tighter">{Math.round((committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100)}%</span></div>
-                <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden border shadow-inner"><div className="h-full bg-emerald-600 transition-all duration-1000" style={{ width: `${(committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100}%` }} /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {committees.map((comm) => (
-                  <div key={comm.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-4 border-emerald-900 shadow-sm group hover:shadow-md transition-all duration-500">
-                    <h3 className="font-bold text-emerald-900 text-xs uppercase tracking-tighter mb-4">{comm.title}</h3>
-                    <div className="space-y-2">
-                      {comm.tasks?.map((t, i) => {
-                        const overdue = !t.completed && isOverdue(t.dueDate);
-                        return (
-                          <div key={i} className={`p-3 rounded-lg border border-slate-50 transition-all duration-500 ${t.completed ? 'bg-slate-50 opacity-40 grayscale' : 'bg-white shadow-sm'}`}>
-                            <label className="flex items-start gap-3 cursor-pointer">
-                              <input type="checkbox" className="mt-0.5 accent-emerald-600 w-3.5 h-3.5 rounded" checked={t.completed || false} onChange={async () => { const nt = [...comm.tasks]; nt[i].completed = !nt[i].completed; await updateField('committees', comm.id, { tasks: nt }); }} />
-                              <div className="flex-1 min-w-0">
-                                <span className={`text-[10px] md:text-[11px] block font-bold tracking-tight ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{t.text}</span>
-                                <div className="flex gap-2 mt-1 opacity-60">
-                                  {t.dueDate && <span className={`text-[7px] font-black uppercase px-1 rounded ${overdue ? 'bg-red-50 text-red-600' : 'bg-slate-100'}`}>Due: {t.dueDate}</span>}
-                                  {t.assignee && <span className="text-[7px] font-black uppercase bg-emerald-50 text-emerald-800 px-1 rounded">@{t.assignee}</span>}
-                                </div>
-                              </div>
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              )}
             </div>
           )}
 
