@@ -124,6 +124,18 @@ export default function ChurchPortal() {
           }
         }, 800);
       }
+      // Logic for Map Sections
+      if (pageParam === 'map' && idParam) {
+        setTimeout(() => {
+          const element = document.getElementById(idParam);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Optional: Add a highlight effect
+            element.classList.add('ring-4', 'ring-emerald-500/20', 'rounded-3xl');
+            setTimeout(() => element.classList.remove('ring-4', 'ring-emerald-500/20'), 3000);
+          }
+        }, 800);
+      }
     }
   }, [forms.length, masterEvents.length]);
 
