@@ -135,14 +135,26 @@ const HomeBlockRenderer = ({ block, setActiveTab }) => {
                       </p>
                     )}
                   </div>
-                  <div className="w-full flex justify-center pt-1">
+                  <div className="w-full flex justify-center pt-0.5">
                     {item.ctaText ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           processLink(item.ctaLink);
                         }}
-                        className={`px-6 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all ${getButtonStyle(item.ctaStyle)}`}
+                        className={`
+    /* 1. Size & Layout - Force single line and small width */
+    w-fit mx-auto whitespace-nowrap px-2 py-1 
+    
+    /* 2. Typography - Keep it bold but readable */
+    rounded-full font-black uppercase text-[8px] tracking-widest 
+    
+    /* 3. Animation & Style */
+    active:scale-95 transition-all shadow-md
+    
+    /* 4. Dynamic Color Logic */
+    ${getButtonStyle(item.ctaStyle)}
+  `}
                       >
                         {item.ctaText}
                       </button>
