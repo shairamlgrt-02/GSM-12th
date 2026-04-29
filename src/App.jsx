@@ -378,12 +378,11 @@ export default function ChurchPortal() {
             {['home', 'vision', 'program', 'register', 'map', 'planning-center'].map((t, i) => (
               <button
                 key={t}
-                onClick={() => setActiveTab(t)}
-                className={`text-[8px] md:text-[11px] font-black uppercase tracking-tighter transition-all px-1 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap 
-          ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'}
-        `}
+                onClick={() => handleTabChange(t)}
+                className={`text-[8px] md:text-[11px] font-black uppercase tracking-tighter transition-all px-1 py-2 md:h-full border-b-2 flex items-center whitespace-nowrap 
+                  ${activeTab === t ? 'border-emerald-800 text-emerald-800' : 'border-transparent text-slate-400'}
+                `}
               >
-                {/* Replaces hyphens with spaces for the display label */}
                 {t.replace('-', ' ')}
               </button>
             ))}
