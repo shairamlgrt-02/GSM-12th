@@ -2,10 +2,50 @@ import React, { useState, useEffect } from 'react';
 
 const HomeBlockRenderer = ({ block, setActiveTab }) => {
   const handleLink = () => {
-    if (block.linkTo) setActiveTab(block.linkTo);
+    if (block.linkTo) processLink(block.linkTo);
   };
 
   const commonClasses = `${block.linkTo ? 'cursor-pointer hover:opacity-95 transition-all' : ''} mb-8 animate-in fade-in duration-700`;
+
+  const processLink = (link) => {
+    if (!link) return;
+
+    // A. Handle Deep-Links to specific Events (e.g., program:Banquet)
+    if (link.startsWith('program:')) {
+      const eventTitle = link.split(':')[1];
+      setActiveTab('program');
+      setTimeout(() => {
+        const elements = document.getElementsByTagName('h4');
+        const target = Array.from(elements).find(el =>
+          el.innerText.toLowerCase().includes(eventTitle.toLowerCase())
+        );
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('bg-emerald-50');
+          setTimeout(() => target.classList.remove('bg-emerald-50'), 2000);
+        }
+      }, 300);
+      return;
+    }
+
+    // B. Handle Basic Tab Switches (using handleTabChange for history!)
+    if (['register', 'map', 'vision', 'program', 'logistics', 'home'].includes(link)) {
+      // Check if handleTabChange exists, otherwise fallback to setActiveTab
+      if (typeof setActiveTab === 'function') {
+        setActiveTab(link);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
+
+    // C. Handle Smart Links (?page=...) or External Links (http://...)
+    if (link.startsWith('http') && !link.includes(window.location.hostname)) {
+      window.open(link, '_blank');
+    } else {
+      // This handles /?page=map&id=location-map style links perfectly
+      window.location.href = link;
+    }
+  };
 
   switch (block.type) {
     case 'hero':
@@ -88,116 +128,87 @@ const HomeBlockRenderer = ({ block, setActiveTab }) => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          const link = item.ctaLink;
-
-                          if (link?.startsWith('program:')) {
-                            const eventTitle = link.split(':')[1];
-                            setActiveTab('program');
-                            setTimeout(() => {
-                              const elements = document.getElementsByTagName('h4');
-                              const target = Array.from(elements).find(el =>
-                                el.innerText.toLowerCase().includes(eventTitle.toLowerCase())
-                              );
-                              if (target) {
-                                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                target.classList.add('bg-emerald-50');
-                                setTimeout(() => target.classList.remove('bg-emerald-50'), 2000);
-                              }
-                            }, 300);
-                          } else if (['register', 'map', 'vision', 'program', 'logistics'].includes(link)) {
-                            setActiveTab(link);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          } else if (link) {
-                            // If the link starts with 'http' and isn't your own site, open a new tab
-                            if (link.startsWith('http') && !link.includes(window.location.hostname)) {
-                              window.open(link, '_blank');
-                            } else {
-                              // Otherwise, it's an internal link! Just change the URL without a refresh.
-                              window.location.href = link;
-                            }
-                          }
+                          processLink(item.ctaLink); // Clean and simple!
                         }}
-                        className={`px-3 py-1 rounded-full text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all border ${hasImage
-                          ? 'bg-transparent border-white text-white hover:bg-white hover:text-emerald-900'
-                          : 'bg-emerald-900 border-emerald-900 text-white hover:bg-emerald-800'
-                          }`}
-                      >
-                        {item.ctaText}
-                      </button>
-                    ) : (
-                      <div className="h-[18px] md:h-[24px]" />
+                        className="bg-emerald-900 text-white px-6 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all"
+                        >
+                          {item.ctaText}
+                        </button>
+                  ) : (
+                  <div className="h-[18px] md:h-[24px]" />
                     )}
-                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              </div>
+      );
+  })
+}
+        </div >
       );
     case 'text':
-      return (
-        <div id={block.id} onClick={handleLink} className={`${commonClasses} max-w-3xl mx-auto text-center py-12`}>
-          <h2 className="font-serif italic text-3xl text-emerald-900 mb-6">{block.title}</h2>
-          <div className="text-slate-600 text-sm md:text-base leading-relaxed whitespace-pre-line px-4">
-            {block.content}
-          </div>
-        </div>
-      );
+return (
+  <div id={block.id} onClick={handleLink} className={`${commonClasses} max-w-3xl mx-auto text-center py-12`}>
+    <h2 className="font-serif italic text-3xl text-emerald-900 mb-6">{block.title}</h2>
+    <div className="text-slate-600 text-sm md:text-base leading-relaxed whitespace-pre-line px-4">
+      {block.content}
+    </div>
+  </div>
+);
     case 'slideshow':
-      const slides = block.slides || [];
-      const [current, setCurrent] = useState(0);
+const slides = block.slides || [];
+const [current, setCurrent] = useState(0);
 
-      useEffect(() => {
-        if (slides.length <= 1) return;
-        const slideTimer = setInterval(() => {
-          setCurrent(prev => (prev === slides.length - 1 ? 0 : prev + 1));
-        }, 5000);
-        return () => clearInterval(slideTimer);
-      }, [slides.length]);
+useEffect(() => {
+  if (slides.length <= 1) return;
+  const slideTimer = setInterval(() => {
+    setCurrent(prev => (prev === slides.length - 1 ? 0 : prev + 1));
+  }, 5000);
+  return () => clearInterval(slideTimer);
+}, [slides.length]);
 
-      if (slides.length === 0) return null;
+if (slides.length === 0) return null;
 
-      return (
-        <div className={`${commonClasses} relative group max-w-4xl mx-auto`}>
-          <div id={block.id}
-            onClick={() => slides[current]?.link && setActiveTab(slides[current].link)}
-            className={`overflow-hidden rounded-3xl shadow-2xl aspect-[16/9] relative ${slides[current]?.link ? 'cursor-pointer' : ''}`}
-          >
-            {slides.map((slide, i) => (
-              <img
-                key={i}
-                src={slide.url}
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}
-                alt=""
-              />
-            ))}
-            {slides[current]?.link && (
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest border border-white/20">
-                Click to View
-              </div>
-            )}
-          </div>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-full z-10">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white scale-125' : 'bg-white/40'}`}
-              />
-            ))}
-          </div>
+return (
+  <div className={`${commonClasses} relative group max-w-4xl mx-auto`}>
+    <div id={block.id}
+      onClick={() => slides[current]?.link && processLink(slides[current].link)}
+      className={`overflow-hidden rounded-3xl ... ${slides[current]?.link ? 'cursor-pointer' : ''}`}
+    >
+      {slides.map((slide, i) => (
+        <img
+          key={i}
+          src={slide.url}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+          alt=""
+        />
+      ))}
+      {slides[current]?.link && (
+        <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest border border-white/20">
+          Click to View
         </div>
-      );
+      )}
+    </div>
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-full z-10">
+      {slides.map((_, i) => (
+        <button
+          key={i}
+          onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
+          className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white scale-125' : 'bg-white/40'}`}
+        />
+      ))}
+    </div>
+  </div>
+);
     case 'image':
-      return (
-        <div id={block.id} onClick={handleLink} className={commonClasses}>
-          <img src={block.imageUrl} alt="Section" className="w-full h-auto rounded-3xl shadow-lg" />
-        </div>
-      );
+return (
+  <div id={block.id} onClick={handleLink} className={commonClasses}>
+    <img src={block.imageUrl} alt="Section" className="w-full h-auto rounded-3xl shadow-lg" />
+  </div>
+);
     case 'divider':
-      return <div className="w-24 h-1 bg-[#C5A021]/30 mx-auto my-16 rounded-full" />;
+return <div className="w-24 h-1 bg-[#C5A021]/30 mx-auto my-16 rounded-full" />;
     default:
-      return null;
+return null;
   }
 };
 export default HomeBlockRenderer;
