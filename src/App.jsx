@@ -337,13 +337,13 @@ export default function ChurchPortal() {
               return (
                 <div
                   key={i}
-                  className="relative aspect-square rounded-2xl border border-slate-100 transition-all overflow-hidden bg-slate-50 shadow-sm"
+                  className="relative aspect-square md:aspect-auto md:h-64 rounded-2xl border border-slate-100 transition-all overflow-hidden bg-slate-50 shadow-sm"
                   style={{
                     backgroundImage: hasImage ? `url(${bgImage})` : 'none',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}
-                >
+                > 
                   {/* Dark Emerald Overlay for readability */}
                   {hasImage && (
                     <div className="absolute inset-0 bg-emerald-950/0 z-0" />
