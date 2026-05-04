@@ -433,7 +433,11 @@ export default function ChurchPortal() {
         )}
         <div className="mt-2">
 
-        <LivePage isAdmin={isAdmin} activeTab={activeTab} />
+          <LivePage
+            isAdmin={isAdmin}
+            activeTab={activeTab}
+            appData={{ mapObjects, isBanquet, siteContent }}
+          />
 
           {activeTab === 'home' && (
             <div className="space-y-8 animate-in fade-in pt-0">
@@ -452,22 +456,6 @@ export default function ChurchPortal() {
 
           {activeTab === 'vision' && (
             <VisionSection siteContent={siteContent} visionActs={visionActs} />
-          )}
-
-          {activeTab === 'map' && (
-            <div className="animate-in fade-in pt-0">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                <h3 className="font-bold text-emerald-900 uppercase text-[10px] tracking-widest italic opacity-40">{siteContent.mapHeader || 'Hall Layout Architect'}</h3>
-                <button onClick={() => setIsBanquet(!isBanquet)} className="bg-emerald-900 text-white px-8 py-2 rounded-xl text-[10px] font-bold uppercase shadow-lg active:scale-95 transition-all">{isBanquet ? 'Switch Layout: Service' : 'Switch Layout: Banquet'}</button>
-              </div>
-              <div className="flex justify-between items-center bg-white border border-gray-100 rounded-xl p-3 mb-8 shadow-sm overflow-x-auto no-scrollbar gap-8">
-                <div className="flex items-center gap-1.5"><div className="w-3.5 h-2.5 border border-black bg-white" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendRooms || 'Rooms'}</span></div>
-                <div className="flex items-center gap-1.5"><div className="flex gap-0.5"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /></div><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendSeating || 'Seating'}</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full border border-white shadow-md" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendEntry || 'Circle'}</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-3.5 h-2.5 bg-orange-400 border border-orange-600 rounded-sm" /><span className="text-[8px] md:text-[10px] font-bold uppercase text-emerald-900">{siteContent.legendBanquet || 'Tables'}</span></div>
-              </div>
-              <MapRenderer mode={isBanquet ? 'banquet' : 'service'} mapObjects={mapObjects} />
-            </div>
           )}
 
           {activeTab === 'program' && (

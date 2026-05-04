@@ -1,10 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { Editor, Frame, Element, useNode, useEditor } from '@craftjs/core';
 import { db } from '../firebase';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+
+// 1. IMPORT YOUR MAP COMPONENT
+// (If LivePage.jsx is in the same folder as MapRenderer.jsx, leave this as is. If not, adjust the path)
+import MapRenderer from './MapRenderer';
+
+// 2. CREATE THE DATA TUNNEL
+export const AppDataContext = createContext();
+
+// 3. CREATE THE DRAGGABLE MAP BLOCK
+const MapBlock = () => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+
+  // Pull the map data out of the tunnel!
+  const { mapObjects, isBanquet } = useContext(AppDataContext) || { mapObjects: [], isBanquet: false };
+
+  return (
+    <div
+      ref={(ref) => enabled ? connect(drag(ref)) : null}
+      className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-blue-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-blue-500 z-10' : ''}`}
+    >
+      {enabled && <span className="absolute top-0 left-0 bg-blue-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Map Component</span>}
+      <div className={`${enabled ? 'pointer-events-none' : ''}`}>
+        <MapRenderer mode={isBanquet ? 'banquet' : 'service'} mapObjects={mapObjects} />
+      </div>
+    </div>
+  );
+};
+MapBlock.craft = { rules: { canDrag: () => true } };
 
 // ==========================================
 // 0. PAGE ROOT (The truly invisible canvas)
@@ -373,9 +402,14 @@ const EditorSidebar = ({ activeTab }) => {
         </div>
 
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">Content Elements</h3>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 mb-6">
           <button ref={(ref) => connectors.create(ref, <AdvancedText />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700">+ Text</button>
           <button ref={(ref) => connectors.create(ref, <CTAButton />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700">+ Button</button>
+        </div>
+
+        <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">App Components</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <button ref={(ref) => connectors.create(ref, <MapBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-blue-400 font-bold">+ Map Layout</button>
         </div>
       </div>
 
@@ -407,7 +441,7 @@ const EditorSidebar = ({ activeTab }) => {
 // ==========================================
 // 8. FINAL MAIN COMPONENT (With Real-Time Sync)
 // ==========================================
-export default function LivePage({ isAdmin, activeTab = 'home' }) {
+export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   const [isEditing, setIsEditing] = useState(false);
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -426,7 +460,7 @@ export default function LivePage({ isAdmin, activeTab = 'home' }) {
           setPageData(null);
         }
         // Turn off loading screen as soon as we get the initial payload
-        setLoading(false); 
+        setLoading(false);
       },
       (error) => {
         console.error("Error fetching realtime data:", error);
@@ -441,32 +475,34 @@ export default function LivePage({ isAdmin, activeTab = 'home' }) {
   if (loading) return <div className="w-full h-screen bg-white animate-pulse" />;
 
   return (
-    <div key={activeTab} className="w-full relative">
-      <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton }} enabled={isEditing}>
+    <AppDataContext.Provider value={appData}>
+      <div key={activeTab} className="w-full relative">
+        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock }} enabled={isEditing}>
 
-        {isAdmin && (
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className={`fixed bottom-6 z-[120] px-6 py-3 rounded-full font-bold shadow-2xl transition-all duration-300 ${isEditing ? 'bg-rose-500 text-white right-6 md:right-[340px]' : 'bg-slate-900 text-white hover:bg-emerald-600 right-6'}`}
-          >
-            {isEditing ? "Close Editor" : "✏️ Edit Page"}
-          </button>
-        )}
-
-        <div className="w-full transition-all duration-300">
-          {pageData ? (<Frame data={pageData} />) : (
-            <Frame>
-              <Element is={PageRoot} canvas>
-                <Element is={SectionContainer} canvas>
-                  <AdvancedText text={`Empty Page: ${activeTab}`} align="center" />
-                </Element>
-              </Element>
-            </Frame>
+          {isAdmin && (
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`fixed bottom-6 z-[120] px-6 py-3 rounded-full font-bold shadow-2xl transition-all duration-300 ${isEditing ? 'bg-rose-500 text-white right-6 md:right-[340px]' : 'bg-slate-900 text-white hover:bg-emerald-600 right-6'}`}
+            >
+              {isEditing ? "Close Editor" : "✏️ Edit Page"}
+            </button>
           )}
-        </div>
 
-        {isEditing && <EditorSidebar activeTab={activeTab} />}
-      </Editor>
-    </div>
+          <div className="w-full transition-all duration-300">
+            {pageData ? (<Frame data={pageData} />) : (
+              <Frame>
+                <Element is={PageRoot} canvas>
+                  <Element is={SectionContainer} canvas>
+                    <AdvancedText text={`Empty Page: ${activeTab}`} align="center" />
+                  </Element>
+                </Element>
+              </Frame>
+            )}
+          </div>
+
+          {isEditing && <EditorSidebar activeTab={activeTab} />}
+        </Editor>
+      </div>
+    </AppDataContext.Provider>
   );
 }
