@@ -448,6 +448,17 @@ CountdownBlock.craft = {
 };
 
 
+// TEMPORARY RESCUE COMPONENT
+const CateringMatrixBlock = () => {
+  const { connectors: { connect, drag } } = useNode();
+  return (
+    <div ref={(ref) => connect(drag(ref))} className="p-4 bg-red-100 text-red-600 border-2 border-red-500 font-bold text-center rounded">
+      GHOST COMPONENT: I am the old Catering Matrix. Please click me and press the delete (trash) button!
+    </div>
+  );
+};
+CateringMatrixBlock.craft = { rules: { canDrag: () => true } };
+
 // 11. CREATE THE GENERIC MATRIX SETTINGS & BLOCK
 const GenericMatrixSettings = () => {
   const { title, columns, rows, actions: { setProp } } = useNode((node) => ({
@@ -564,6 +575,101 @@ GenericMatrixBlock.craft = {
     ]
   },
   related: { settings: GenericMatrixSettings },
+  rules: { canDrag: () => true }
+};
+
+
+// 12. CREATE THE COMMITTEE CHECKLIST SETTINGS & BLOCK
+const CommitteeChecklistSettings = () => {
+  const { committees, actions: { setProp } } = useNode((node) => ({ committees: node.data.props.committees }));
+  const addCommittee = () => setProp(p => p.committees.push({ title: "New Committee", tasks: [] }));
+  const removeCommittee = (cIndex) => setProp(p => p.committees.splice(cIndex, 1));
+  const updateCommTitle = (cIndex, val) => setProp(p => p.committees[cIndex].title = val);
+  const addTask = (cIndex) => setProp(p => p.committees[cIndex].tasks.push({ text: "New Task", assignee: "", dueDate: "", completed: false }));
+  const removeTask = (cIndex, tIndex) => setProp(p => p.committees[cIndex].tasks.splice(tIndex, 1));
+  const updateTask = (cIndex, tIndex, field, val) => setProp(p => p.committees[cIndex].tasks[tIndex][field] = val);
+
+  return (
+    <div className="space-y-6 animate-in fade-in">
+      <div className="space-y-4">
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Committees & Tasks</label>
+        {committees && committees.map((comm, cIndex) => (
+          <div key={cIndex} className="p-3 bg-slate-800 border border-slate-700 rounded-lg space-y-3 relative">
+            <button onClick={() => removeCommittee(cIndex)} className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center hover:bg-red-600 transition-colors z-10">✕</button>
+            <input type="text" value={comm.title} onChange={(e) => updateCommTitle(cIndex, e.target.value)} className="w-full bg-slate-900 text-white font-bold border border-slate-700 rounded p-2 text-xs focus:border-purple-500 outline-none" placeholder="Committee Name" />
+            <div className="pl-2 border-l-2 border-slate-700 space-y-2">
+              {comm.tasks && comm.tasks.map((task, tIndex) => (
+                <div key={tIndex} className="bg-slate-900 p-2 rounded border border-slate-800 relative group">
+                  <button onClick={() => removeTask(cIndex, tIndex)} className="absolute top-1 right-1 text-slate-500 hover:text-red-400 text-[10px] font-bold">✕</button>
+                  <input type="text" value={task.text} onChange={(e) => updateTask(cIndex, tIndex, 'text', e.target.value)} className="w-[90%] bg-transparent text-slate-300 text-[10px] outline-none mb-1 focus:text-white" placeholder="Task description..." />
+                  <div className="flex gap-1">
+                    <input type="text" value={task.assignee} onChange={(e) => updateTask(cIndex, tIndex, 'assignee', e.target.value)} className="flex-1 bg-slate-800 text-slate-400 border border-slate-700 rounded px-1 py-0.5 text-[9px] outline-none focus:border-purple-500" placeholder="@assignee" />
+                    <input type="date" value={task.dueDate} onChange={(e) => updateTask(cIndex, tIndex, 'dueDate', e.target.value)} className="flex-1 bg-slate-800 text-slate-400 border border-slate-700 rounded px-1 py-0.5 text-[9px] outline-none [color-scheme:dark] focus:border-purple-500" />
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => addTask(cIndex)} className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-[9px] font-bold uppercase tracking-wider transition-colors">+ Add Task</button>
+            </div>
+          </div>
+        ))}
+        <button onClick={addCommittee} className="w-full py-2 bg-purple-900/40 text-purple-400 hover:bg-purple-900/60 border border-purple-900/50 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all mt-2">+ Add Committee</button>
+      </div>
+    </div>
+  );
+};
+
+const CommitteeChecklistBlock = ({ committees }) => {
+  const { connectors: { connect, drag }, selected, actions: { setProp } } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+
+  const totalTasks = committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1;
+  const completedTasks = committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0);
+  const progressPercent = Math.round((completedTasks / totalTasks) * 100);
+
+  const toggleTask = (cIndex, tIndex) => {
+    if (!enabled && setProp) setProp(p => p.committees[cIndex].tasks[tIndex].completed = !p.committees[cIndex].tasks[tIndex].completed);
+  };
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all max-w-5xl mx-auto ${enabled ? 'border-2 border-dashed border-purple-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-purple-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-purple-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Committees</span>}
+      <div className={`space-y-6 ${enabled ? 'pointer-events-none' : ''}`}>
+        <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-end mb-1">
+            <h3 className="font-black text-emerald-900 text-[9px] uppercase tracking-widest italic opacity-40">Event Readiness</h3>
+            <span className="font-serif italic text-emerald-900 text-3xl tracking-tighter">{progressPercent}%</span>
+          </div>
+          <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden border shadow-inner">
+            <div className="h-full bg-emerald-600 transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
+          {committees.map((comm, cIndex) => (
+            <div key={cIndex} className="bg-white p-5 rounded-xl border border-slate-100 border-t-4 border-emerald-900 shadow-sm group hover:shadow-md transition-all duration-500">
+              <h3 className="font-bold text-emerald-900 text-xs uppercase tracking-tighter mb-4">{comm.title}</h3>
+              <div className="space-y-2">
+                {comm.tasks?.map((t, tIndex) => (
+                  <div key={tIndex} className={`p-3 rounded-lg border border-slate-50 transition-all duration-500 ${t.completed ? 'bg-slate-50 opacity-40 grayscale' : 'bg-white shadow-sm'}`}>
+                    <label className="flex items-start gap-3 cursor-pointer" onClick={(e) => { e.preventDefault(); toggleTask(cIndex, tIndex); }}>
+                      <input type="checkbox" className="mt-0.5 accent-emerald-600 w-3.5 h-3.5 rounded" checked={t.completed || false} readOnly />
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-[10px] md:text-[11px] block font-bold tracking-tight ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{t.text}</span>
+                      </div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+CommitteeChecklistBlock.craft = {
+  props: { committees: [{ title: "Logistics", tasks: [{ text: "Confirm Venue", assignee: "Sarah", dueDate: "", completed: true }] }] },
+  related: { settings: CommitteeChecklistSettings },
   rules: { canDrag: () => true }
 };
 
@@ -1027,7 +1133,10 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   return (
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
-        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, GenericMatrixBlock, CommitteeChecklistBlock }} enabled={isEditing}>
+        <Editor resolver={{
+          PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, GenericMatrixBlock, CommitteeChecklistBlock,
+          CateringMatrixBlock
+        }} enabled={isEditing}>
 
           {isAdmin && (
             <button
