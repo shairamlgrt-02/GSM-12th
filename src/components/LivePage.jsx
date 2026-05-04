@@ -7,9 +7,10 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
 // 1. IMPORT YOUR CUSTOM COMPONENTS
-import MapRenderer from './MapRenderer'; 
-import VisionSection from './VisionSection'; 
+import MapRenderer from './MapRenderer';
+import VisionSection from './VisionSection';
 import HomeBlockRenderer from './HomeBlockRenderer';
+import RegistrationSection from './RegistrationSection';
 
 // 2. CREATE THE DATA TUNNEL
 export const AppDataContext = createContext();
@@ -102,6 +103,85 @@ const HomeWidgetsBlock = () => {
 };
 HomeWidgetsBlock.craft = { rules: { canDrag: () => true } };
 
+
+// 7. CREATE THE PROGRAM BLOCK
+const ProgramBlock = () => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+  const { masterEvents, program, logisticsCards, activeEventSubTab, setActiveEventSubTab, activeProgramId, setActiveProgramId } = useContext(AppDataContext) || { masterEvents: [], program: [], logisticsCards: [] };
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-cyan-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-cyan-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-cyan-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Program & Itinerary</span>}
+      <div className={`${enabled ? 'pointer-events-none' : ''}`}>
+
+        <div className="flex flex-wrap bg-emerald-900/5 p-1 rounded-xl gap-2 shadow-inner mb-4">
+          {masterEvents && masterEvents.filter(e => e.isActive !== false).map(ev => (
+            <button
+              key={ev.id}
+              onClick={() => setActiveEventSubTab && setActiveEventSubTab(ev.id)}
+              className={`flex-1 min-w-[100px] py-2 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-500 ${activeEventSubTab === ev.id ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
+            >
+              {ev.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden mb-4">
+          <div className="p-4 bg-emerald-900 text-white text-center"><h3 className="font-serif text-lg italic tracking-tight">{masterEvents && masterEvents.find(e => e.id === activeEventSubTab)?.programHeader || 'Itinerary'}</h3></div>
+          <div className="divide-y divide-slate-50">
+            {program && program.filter(item => item.parentId === activeEventSubTab).map(row => (
+              <div key={row.id}>
+                <div onClick={() => setActiveProgramId && setActiveProgramId(activeProgramId === row.id ? null : row.id)} className="flex items-center p-4 cursor-pointer hover:bg-slate-50 transition-all">
+                  <div className="w-16 md:w-24 font-bold text-[10px] text-emerald-800 uppercase tracking-tighter shrink-0">{row.time}</div>
+                  <div className="flex-1">
+                    <div className="font-bold text-[11px] md:text-sm text-slate-700 leading-tight tracking-tight">{row.activity}</div>
+                    {row.remarks && <div className="text-[9px] text-emerald-600 italic font-semibold">— {row.remarks}</div>}
+                  </div>
+                </div>
+                {activeProgramId === row.id && row.description && (
+                  <div className="px-4 pb-4 bg-slate-50/50 text-[10px] text-slate-500 pl-20 md:pl-28 animate-in fade-in leading-relaxed font-medium">{row.description}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {logisticsCards && logisticsCards.filter(c => c.parentId === activeEventSubTab).map(card => (
+            <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-[4px] border-[#C5A021] shadow-sm">
+              <h4 className="font-bold text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
+              <p className="text-[11px] text-gray-600 leading-relaxed font-medium whitespace-pre-line tracking-tight">{card.desc}</p>
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
+  );
+};
+ProgramBlock.craft = { rules: { canDrag: () => true } };
+
+// 8. CREATE THE REGISTRATION BLOCK
+const RegistrationBlock = () => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+  const { forms, activeFormId, setActiveFormId, submitResponse } = useContext(AppDataContext) || {};
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-rose-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-rose-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-rose-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Registration Area</span>}
+      <div className={`${enabled ? 'pointer-events-none' : ''}`}>
+        {forms ? (
+          <RegistrationSection forms={forms} activeFormId={activeFormId} setActiveFormId={setActiveFormId} submitResponse={submitResponse} />
+        ) : (
+          <div className="text-center py-10 opacity-40">Loading registration...</div>
+        )}
+      </div>
+    </div>
+  );
+};
+RegistrationBlock.craft = { rules: { canDrag: () => true } };
 
 
 // ==========================================
@@ -478,10 +558,12 @@ const EditorSidebar = ({ activeTab }) => {
 
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">App Components</h3>
         <div className="grid grid-cols-2 gap-2">
-          <button ref={(ref) => connectors.create(ref, <SiteHeaderBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-pink-400 font-bold">+ Site Header</button>
-          <button ref={(ref) => connectors.create(ref, <HomeWidgetsBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-amber-400 font-bold">+ Home Widgets</button>
-          <button ref={(ref) => connectors.create(ref, <MapBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-blue-400 font-bold">+ Map Layout</button>
-          <button ref={(ref) => connectors.create(ref, <VisionBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-indigo-400 font-bold">+ Vision Area</button>
+          <button ref={(ref) => connectors.create(ref, <SiteHeaderBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-pink-400 font-bold">+ Header</button>
+          <button ref={(ref) => connectors.create(ref, <HomeWidgetsBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-amber-400 font-bold">+ Home</button>
+          <button ref={(ref) => connectors.create(ref, <ProgramBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-cyan-400 font-bold">+ Program</button>
+          <button ref={(ref) => connectors.create(ref, <RegistrationBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-rose-400 font-bold">+ Register</button>
+          <button ref={(ref) => connectors.create(ref, <MapBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-blue-400 font-bold">+ Map</button>
+          <button ref={(ref) => connectors.create(ref, <VisionBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-indigo-400 font-bold">+ Vision</button>
         </div>
       </div>
 
@@ -549,7 +631,7 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   return (
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
-      <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock }} enabled={isEditing}>
+        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock }} enabled={isEditing}>
 
           {isAdmin && (
             <button

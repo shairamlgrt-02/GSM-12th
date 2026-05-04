@@ -422,56 +422,14 @@ export default function ChurchPortal() {
           <LivePage
             isAdmin={isAdmin}
             activeTab={activeTab}
-            appData={{ mapObjects, isBanquet, siteContent, visionActs, homeBlocks, setActiveTab }}
+            appData={{
+              mapObjects, isBanquet, siteContent, visionActs, homeBlocks, setActiveTab,
+              masterEvents, program, logisticsCards, activeEventSubTab, setActiveEventSubTab, activeProgramId, setActiveProgramId,
+              forms, activeFormId, setActiveFormId, submitResponse
+            }}
           />
 
-          {activeTab === 'program' && (
-            <div className="animate-in fade-in pt-0">
-              <div className="flex flex-wrap bg-emerald-900/5 p-1 rounded-xl gap-2 shadow-inner">
-                {masterEvents.filter(e => e.isActive !== false).map(ev => (
-                  <button
-                    key={ev.id}
-                    onClick={() => setActiveEventSubTab(ev.id)}
-                    className={`flex-1 min-w-[100px] py-2 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-500 ${activeEventSubTab === ev.id ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
-                  >
-                    {ev.name}
-                  </button>
-                ))}
-              </div>
 
-              <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="p-4 bg-emerald-900 text-white text-center"><h3 className="font-serif text-lg italic tracking-tight">{masterEvents.find(e => e.id === activeEventSubTab)?.programHeader || 'Itinerary'}</h3></div>
-                <div className="divide-y divide-slate-50">
-                  {program.filter(item => item.parentId === activeEventSubTab).map(row => (
-                    <div key={row.id}>
-                      <div onClick={() => setActiveProgramId(activeProgramId === row.id ? null : row.id)} className="flex items-center p-4 cursor-pointer hover:bg-slate-50 transition-all">
-                        <div className="w-16 md:w-24 font-bold text-[10px] text-emerald-800 uppercase tracking-tighter shrink-0">{row.time}</div>
-                        <div className="flex-1">
-                          <div className="font-bold text-[11px] md:text-sm text-slate-700 leading-tight tracking-tight">{row.activity}</div>
-                          {row.remarks && <div className="text-[9px] text-emerald-600 italic font-semibold">— {row.remarks}</div>}
-                        </div>
-                      </div>
-                      {activeProgramId === row.id && row.description && (
-                        <div className="px-4 pb-4 bg-slate-50/50 text-[10px] text-slate-500 pl-20 md:pl-28 animate-in fade-in leading-relaxed font-medium">{row.description}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {logisticsCards.filter(c => c.parentId === activeEventSubTab).map(card => (
-                  <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-[4px] border-[#C5A021] shadow-sm">
-                    <h4 className="font-bold text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
-                    <p className="text-[11px] text-gray-600 leading-relaxed font-medium whitespace-pre-line tracking-tight">{card.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'register' && (
-            <RegistrationSection forms={forms} activeFormId={activeFormId} setActiveFormId={setActiveFormId} submitResponse={submitResponse} />
-          )}
 
           {activeTab === 'planning-center' && (
             <div className="max-w-4xl mx-auto py-10 px-4 animate-in fade-in duration-700">
