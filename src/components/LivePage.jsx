@@ -184,6 +184,182 @@ const RegistrationBlock = () => {
 RegistrationBlock.craft = { rules: { canDrag: () => true } };
 
 
+// 9. CREATE THE PLANNING CENTER BLOCK
+const PlanningCenterBlock = () => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+
+  const {
+    isPrivateUnlocked, setIsPrivateUnlocked, passInput, setPassInput, internalSubTab, setInternalSubTab,
+    siteContent, catering, logisticsCards, committees, updateField, isOverdue
+  } = useContext(AppDataContext) || {};
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-purple-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-purple-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-purple-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Planning Center</span>}
+      <div className={`${enabled ? 'pointer-events-none' : ''}`}>
+
+        <div className="max-w-4xl mx-auto py-10 px-4 animate-in fade-in duration-700">
+          {!isPrivateUnlocked ? (
+            /* PRIVATE LOGIN GATE */
+            <div className="max-w-md mx-auto mt-10">
+              <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-emerald-900/5 text-center">
+                <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8">
+                  <svg className="w-10 h-10 text-emerald-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002-2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <h2 className="font-serif italic text-2xl text-emerald-900 mb-2">Planning Center</h2>
+                <p className="text-slate-400 text-[10px] uppercase tracking-[0.2em] mb-10">Secure Committee & Logistics Portal</p>
+                <div className="space-y-4">
+                  <input
+                    type="password"
+                    className="w-full bg-slate-50 border border-transparent focus:border-emerald-100 rounded-2xl px-6 py-4 text-center text-emerald-900 tracking-[0.3em] outline-none transition-all"
+                    placeholder="••••••••"
+                    value={passInput || ''}
+                    onChange={(e) => setPassInput && setPassInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (passInput === 'GSM2026') { setIsPrivateUnlocked && setIsPrivateUnlocked(true); }
+                        else { alert("Invalid Access Code"); setPassInput && setPassInput(''); }
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (passInput === 'GSM2026') { setIsPrivateUnlocked && setIsPrivateUnlocked(true); }
+                      else { alert("Invalid Access Code"); setPassInput && setPassInput(''); }
+                    }}
+                    className="w-full bg-emerald-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-900/20 hover:bg-emerald-800 transition-all active:scale-95"
+                  >
+                    Verify Access
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* UNLOCKED PLANNING CENTER DASHBOARD */
+            <div className="animate-in slide-in-from-bottom-6 duration-500">
+              {/* SUB-NAV */}
+              <div className="flex bg-emerald-900/5 p-1 rounded-xl gap-2 shadow-inner mb-10 max-w-lg mx-auto">
+                <button
+                  onClick={() => setInternalSubTab && setInternalSubTab('logistics')}
+                  className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${internalSubTab === 'logistics' ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
+                >
+                  Logistics
+                </button>
+                <button
+                  onClick={() => setInternalSubTab && setInternalSubTab('committees')}
+                  className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${internalSubTab === 'committees' ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
+                >
+                  Committees
+                </button>
+              </div>
+
+              {/* LOGISTICS CONTENT */}
+              {(internalSubTab === 'logistics' || !internalSubTab) && (
+                <div className="animate-in fade-in pt-0 space-y-6">
+                  <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit">
+                    <div className="bg-emerald-900 p-4">
+                      <h3 className="font-serif italic text-white text-lg tracking-tight leading-none text-center">
+                        {siteContent?.cateringHeader || 'Food Contribution'}
+                      </h3>
+                    </div>
+                    <div className="divide-y divide-slate-50">
+                      {catering && catering.map((item, i) => (
+                        <div key={i} className="p-4 hover:bg-slate-50 transition-all flex flex-col gap-1 text-left">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">{item.group}</span>
+                            {item.person && <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">PIC: {item.person}</span>}
+                          </div>
+                          <span className="text-[11px] md:text-[13px] font-bold text-emerald-900 tracking-tight leading-tight">{item.dish}</span>
+                        </div>
+                      ))}
+                      {siteContent?.paxNote && (
+                        <div className="p-4 bg-slate-50 border-t border-slate-100">
+                          <p className="text-[10px] italic text-slate-500 font-medium tracking-tight">Note: {siteContent.paxNote}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-4 text-left">
+                    {logisticsCards && logisticsCards.filter(card => !card.parentId).map(card => (
+                      <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-l-[6px] border-emerald-900 shadow-sm hover:shadow-md transition-all duration-500">
+                        <h4 className="font-black text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
+                        <p className="text-[11px] md:text-sm text-slate-600 leading-relaxed font-bold tracking-tight whitespace-pre-line">{card.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* COMMITTEES CONTENT */}
+              {internalSubTab === 'committees' && committees && (
+                <div className="animate-in fade-in pt-0 space-y-6">
+                  <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="flex justify-between items-end mb-1">
+                      <h3 className="font-black text-emerald-900 text-[9px] uppercase tracking-widest italic opacity-40">Event Readiness</h3>
+                      <span className="font-serif italic text-emerald-900 text-3xl tracking-tighter">
+                        {Math.round((committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden border shadow-inner">
+                      <div
+                        className="h-full bg-emerald-600 transition-all duration-1000"
+                        style={{ width: `${(committees.reduce((acc, comm) => acc + (comm.tasks?.filter(t => t.completed).length || 0), 0) / (committees.reduce((acc, comm) => acc + (comm.tasks?.length || 0), 0) || 1)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
+                    {committees.map((comm) => (
+                      <div key={comm.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-4 border-emerald-900 shadow-sm group hover:shadow-md transition-all duration-500">
+                        <h3 className="font-bold text-emerald-900 text-xs uppercase tracking-tighter mb-4">{comm.title}</h3>
+                        <div className="space-y-2">
+                          {comm.tasks?.map((t, i) => {
+                            const overdue = !t.completed && isOverdue && isOverdue(t.dueDate);
+                            return (
+                              <div key={i} className={`p-3 rounded-lg border border-slate-50 transition-all duration-500 ${t.completed ? 'bg-slate-50 opacity-40 grayscale' : 'bg-white shadow-sm'}`}>
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    className="mt-0.5 accent-emerald-600 w-3.5 h-3.5 rounded"
+                                    checked={t.completed || false}
+                                    onChange={async () => {
+                                      if (updateField) {
+                                        const nt = [...comm.tasks];
+                                        nt[i].completed = !nt[i].completed;
+                                        await updateField('committees', comm.id, { tasks: nt });
+                                      }
+                                    }}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <span className={`text-[10px] md:text-[11px] block font-bold tracking-tight ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{t.text}</span>
+                                    <div className="flex gap-2 mt-1 opacity-60">
+                                      {t.dueDate && <span className={`text-[7px] font-black uppercase px-1 rounded ${overdue ? 'bg-red-50 text-red-600' : 'bg-slate-100'}`}>Due: {t.dueDate}</span>}
+                                      {t.assignee && <span className="text-[7px] font-black uppercase bg-emerald-50 text-emerald-800 px-1 rounded">@{t.assignee}</span>}
+                                    </div>
+                                  </div>
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+};
+PlanningCenterBlock.craft = { rules: { canDrag: () => true } };
+
+
 // ==========================================
 // 0. PAGE ROOT (The truly invisible canvas)
 // ==========================================
@@ -564,6 +740,7 @@ const EditorSidebar = ({ activeTab }) => {
           <button ref={(ref) => connectors.create(ref, <RegistrationBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-rose-400 font-bold">+ Register</button>
           <button ref={(ref) => connectors.create(ref, <MapBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-blue-400 font-bold">+ Map</button>
           <button ref={(ref) => connectors.create(ref, <VisionBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-indigo-400 font-bold">+ Vision</button>
+          <button ref={(ref) => connectors.create(ref, <PlanningCenterBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-purple-400 font-bold col-span-2">+ Planning Center</button>
         </div>
       </div>
 
@@ -631,7 +808,7 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   return (
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
-        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock }} enabled={isEditing}>
+      <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock }} enabled={isEditing}>
 
           {isAdmin && (
             <button
