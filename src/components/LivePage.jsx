@@ -448,17 +448,6 @@ CountdownBlock.craft = {
 };
 
 
-// TEMPORARY RESCUE COMPONENT
-const CateringMatrixBlock = () => {
-  const { connectors: { connect, drag } } = useNode();
-  return (
-    <div ref={(ref) => connect(drag(ref))} className="p-4 bg-red-100 text-red-600 border-2 border-red-500 font-bold text-center rounded">
-      GHOST COMPONENT: I am the old Catering Matrix. Please click me and press the delete (trash) button!
-    </div>
-  );
-};
-CateringMatrixBlock.craft = { rules: { canDrag: () => true } };
-
 // 11. CREATE THE GENERIC MATRIX SETTINGS & BLOCK
 const GenericMatrixSettings = () => {
   const { title, columns, rows, actions: { setProp } } = useNode((node) => ({
@@ -1134,8 +1123,7 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
         <Editor resolver={{
-          PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, GenericMatrixBlock, CommitteeChecklistBlock,
-          CateringMatrixBlock
+          PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, GenericMatrixBlock, CommitteeChecklistBlock
         }} enabled={isEditing}>
 
           {isAdmin && (
