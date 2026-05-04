@@ -416,43 +416,14 @@ export default function ChurchPortal() {
       </nav>
 
       <main className="px-5 max-w-6xl mx-auto pb-35 pt-35 md:pt-35">
-        {activeTab === 'home' && siteContent && (
-          <header className="text-center mb-4 animate-in fade-in duration-1000">
-            <h1 className="text-4xl md:text-7xl font-serif text-emerald-900 mb-2 italic tracking-tight">
-              {siteContent.mainTitle}
-            </h1>
-            <p className="text-[#C5A021] font-bold tracking-[0.25em] text-[10px] md:text-sm mb-4 uppercase">
-              {siteContent.subTitle}
-            </p>
-            <div className="max-w-xs md:max-w-3xl mx-auto border-y border-emerald-900/10 py-3">
-              <p className="text-emerald-800 font-serif italic opacity-75 leading-relaxed text-[13px] md:text-lg">
-                {siteContent.verse}
-              </p>
-            </div>
-          </header>
-        )}
+
         <div className="mt-2">
 
           <LivePage
             isAdmin={isAdmin}
             activeTab={activeTab}
-            appData={{ mapObjects, isBanquet, siteContent, visionActs }}
+            appData={{ mapObjects, isBanquet, siteContent, visionActs, homeBlocks, setActiveTab }}
           />
-
-          {activeTab === 'home' && (
-            <div className="space-y-8 animate-in fade-in pt-0">
-              {homeBlocks.length > 0 ? (
-                homeBlocks.map(block => (
-                  <HomeBlockRenderer key={block.id} block={block} setActiveTab={setActiveTab} />
-                ))
-              ) : (
-                <div className="text-center py-10 opacity-40">
-                  <img src="https://i.ibb.co/5Q0nkvG/GSM-Logo-with-White.png" alt="Logo" className="w-16 mx-auto mb-4" />
-                  <p className="font-serif italic text-xl">The journey begins soon...</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {activeTab === 'program' && (
             <div className="animate-in fade-in pt-0">

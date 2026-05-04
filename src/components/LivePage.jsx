@@ -7,8 +7,9 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
 // 1. IMPORT YOUR CUSTOM COMPONENTS
-import MapRenderer from './MapRenderer';
-import VisionSection from './VisionSection';
+import MapRenderer from './MapRenderer'; 
+import VisionSection from './VisionSection'; 
+import HomeBlockRenderer from './HomeBlockRenderer';
 
 // 2. CREATE THE DATA TUNNEL
 export const AppDataContext = createContext();
@@ -57,6 +58,50 @@ const VisionBlock = () => {
   );
 };
 VisionBlock.craft = { rules: { canDrag: () => true } };
+
+
+// 5. CREATE THE SITE HEADER BLOCK
+const SiteHeaderBlock = () => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+  const { siteContent } = useContext(AppDataContext) || { siteContent: {} };
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-pink-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-pink-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-pink-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Site Header</span>}
+      <header className={`text-center mb-4 ${enabled ? 'pointer-events-none' : ''}`}>
+        <h1 className="text-4xl md:text-7xl font-serif text-emerald-900 mb-2 italic tracking-tight">{siteContent.mainTitle || 'Main Title'}</h1>
+        <p className="text-[#C5A021] font-bold tracking-[0.25em] text-[10px] md:text-sm mb-4 uppercase">{siteContent.subTitle || 'Subtitle'}</p>
+        <div className="max-w-xs md:max-w-3xl mx-auto border-y border-emerald-900/10 py-3">
+          <p className="text-emerald-800 font-serif italic opacity-75 leading-relaxed text-[13px] md:text-lg">{siteContent.verse || 'Verse goes here...'}</p>
+        </div>
+      </header>
+    </div>
+  );
+};
+SiteHeaderBlock.craft = { rules: { canDrag: () => true } };
+
+// 6. CREATE THE COUNTDOWN & WIDGETS BLOCK
+const HomeWidgetsBlock = () => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+  const { homeBlocks, setActiveTab } = useContext(AppDataContext) || { homeBlocks: [] };
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-amber-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-amber-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-amber-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Home Widgets (Countdown)</span>}
+      <div className={`space-y-8 ${enabled ? 'pointer-events-none' : ''}`}>
+        {homeBlocks && homeBlocks.length > 0 ? (
+          homeBlocks.map(block => <HomeBlockRenderer key={block.id} block={block} setActiveTab={setActiveTab} />)
+        ) : (
+          <div className="text-center py-10 opacity-40"><p className="font-serif italic text-xl">Loading widgets...</p></div>
+        )}
+      </div>
+    </div>
+  );
+};
+HomeWidgetsBlock.craft = { rules: { canDrag: () => true } };
+
 
 
 // ==========================================
@@ -433,6 +478,8 @@ const EditorSidebar = ({ activeTab }) => {
 
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">App Components</h3>
         <div className="grid grid-cols-2 gap-2">
+          <button ref={(ref) => connectors.create(ref, <SiteHeaderBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-pink-400 font-bold">+ Site Header</button>
+          <button ref={(ref) => connectors.create(ref, <HomeWidgetsBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-amber-400 font-bold">+ Home Widgets</button>
           <button ref={(ref) => connectors.create(ref, <MapBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-blue-400 font-bold">+ Map Layout</button>
           <button ref={(ref) => connectors.create(ref, <VisionBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-indigo-400 font-bold">+ Vision Area</button>
         </div>
@@ -502,7 +549,7 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   return (
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
-        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock }} enabled={isEditing}>
+      <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock }} enabled={isEditing}>
 
           {isAdmin && (
             <button
