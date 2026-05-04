@@ -7,6 +7,8 @@ import HomeBlockRenderer from './components/HomeBlockRenderer';
 import VisionSection from './components/VisionSection';
 import RegistrationSection from './components/RegistrationSection';
 import AdminDashboard from './components/AdminDashboard';
+import PageBuilder from './components/PageBuilder';
+import LivePage from './components/LivePage';
 
 const isOverdue = (dateStr) => {
   if (!dateStr) return false;
@@ -392,7 +394,8 @@ export default function ChurchPortal() {
               <LogIn size={14} strokeWidth={2.5} />
             </button>
           </div>
-        </div>
+        </div> {/* <--- This is the crucial closing div that was missing! */}
+
 
         {/* BOTTOM ROW: Uniform Gaps & Smart Wrapping */}
         <div className="bg-[#F4F1E8] border-b border-gray-200 py-0.5 md:py-0">
@@ -429,6 +432,8 @@ export default function ChurchPortal() {
           </header>
         )}
         <div className="mt-2">
+
+        <LivePage isAdmin={isAdmin} activeTab={activeTab} />
 
           {activeTab === 'home' && (
             <div className="space-y-8 animate-in fade-in pt-0">
