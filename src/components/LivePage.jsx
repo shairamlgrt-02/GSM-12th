@@ -448,131 +448,122 @@ CountdownBlock.craft = {
 };
 
 
-// 11. CREATE THE CATERING MATRIX SETTINGS & BLOCK
-const CateringMatrixSettings = () => {
-  const { items, headerText, actions: { setProp } } = useNode((node) => ({
-    items: node.data.props.items,
-    headerText: node.data.props.headerText
+// 11. CREATE THE GENERIC MATRIX SETTINGS & BLOCK
+const GenericMatrixSettings = () => {
+  const { title, columns, rows, actions: { setProp } } = useNode((node) => ({
+    title: node.data.props.title,
+    columns: node.data.props.columns,
+    rows: node.data.props.rows
   }));
 
-  const updateItem = (index, field, value) => {
-    setProp((props) => {
-      props.items[index][field] = value;
-    });
-  };
+  // Column Handlers
+  const addColumn = () => setProp(p => {
+    p.columns.push(`Col ${p.columns.length + 1}`);
+    p.rows.forEach(row => row.push("")); // Add an empty cell to every existing row
+  });
+  const updateColumn = (index, val) => setProp(p => p.columns[index] = val);
+  const removeColumn = (index) => setProp(p => {
+    p.columns.splice(index, 1);
+    p.rows.forEach(row => row.splice(index, 1)); // Remove that cell from every row
+  });
 
-  const addItem = () => {
-    setProp((props) => {
-      props.items.push({ group: 'New Group', person: '', dish: 'New Dish' });
-    });
-  };
-
-  const removeItem = (index) => {
-    setProp((props) => {
-      props.items.splice(index, 1);
-    });
-  };
+  // Row Handlers
+  const addRow = () => setProp(p => p.rows.push(new Array(p.columns.length).fill("")));
+  const updateCell = (rowIndex, colIndex, val) => setProp(p => p.rows[rowIndex][colIndex] = val);
+  const removeRow = (index) => setProp(p => p.rows.splice(index, 1));
 
   return (
     <div className="space-y-6 animate-in fade-in">
       <div>
-        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Matrix Header</label>
-        <input
-          type="text"
-          value={headerText || ''}
-          onChange={(e) => setProp((props) => props.headerText = e.target.value)}
-          className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-3 text-xs focus:border-emerald-500 outline-none"
-        />
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Matrix Title</label>
+        <input type="text" value={title || ''} onChange={(e) => setProp(p => p.title = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-3 text-xs focus:border-blue-500 outline-none" />
       </div>
 
-      <div className="space-y-4">
-        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Matrix Rows</label>
-        {items && items.map((item, i) => (
-          <div key={i} className="p-3 bg-slate-800 border border-slate-700 rounded-lg space-y-2 relative">
-            <button
-              onClick={() => removeItem(i)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center hover:bg-red-600 transition-colors"
-            >
-              ✕
-            </button>
-            <input
-              type="text"
-              placeholder="Group (e.g., Team A)"
-              value={item.group}
-              onChange={(e) => updateItem(i, 'group', e.target.value)}
-              className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-[10px] focus:border-emerald-500 outline-none"
-            />
-            <input
-              type="text"
-              placeholder="Person in Charge (Optional)"
-              value={item.person}
-              onChange={(e) => updateItem(i, 'person', e.target.value)}
-              className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-[10px] focus:border-emerald-500 outline-none"
-            />
-            <input
-              type="text"
-              placeholder="Dish / Contribution"
-              value={item.dish}
-              onChange={(e) => updateItem(i, 'dish', e.target.value)}
-              className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-[10px] focus:border-emerald-500 outline-none"
-            />
+      {/* MANAGE COLUMNS */}
+      <div>
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Columns</label>
+        {columns.map((col, i) => (
+          <div key={i} className="flex gap-2 mb-2">
+            <input type="text" value={col} onChange={(e) => updateColumn(i, e.target.value)} className="flex-1 bg-slate-900 text-white border border-slate-700 rounded p-2 text-xs focus:border-blue-500 outline-none" />
+            <button onClick={() => removeColumn(i)} className="bg-red-500/20 text-red-500 px-2 rounded hover:bg-red-500 hover:text-white text-xs transition-colors">✕</button>
           </div>
         ))}
+        <button onClick={addColumn} className="w-full py-1.5 bg-blue-900/40 text-blue-400 rounded border border-blue-900/50 text-[10px] font-black uppercase mt-1 hover:bg-blue-900/60 transition-colors">+ Add Column</button>
+      </div>
 
-        <button
-          onClick={addItem}
-          className="w-full py-2 bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/60 border border-emerald-900/50 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all mt-2"
-        >
-          + Add Row
-        </button>
+      {/* MANAGE ROWS */}
+      <div>
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data Rows</label>
+        {rows.map((row, rIndex) => (
+          <div key={rIndex} className="p-3 bg-slate-800 border border-slate-700 rounded-lg mb-3 relative">
+            <button onClick={() => removeRow(rIndex)} className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold hover:bg-red-600 z-10">✕</button>
+            <div className="space-y-2">
+              {columns.map((col, cIndex) => (
+                <div key={cIndex}>
+                  <span className="text-[8px] uppercase text-slate-500 block mb-1">{col}</span>
+                  <input type="text" value={row[cIndex] || ""} onChange={(e) => updateCell(rIndex, cIndex, e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-xs focus:border-blue-500 outline-none" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <button onClick={addRow} className="w-full py-2 bg-emerald-900/40 text-emerald-400 rounded-lg border border-emerald-900/50 text-[10px] font-black uppercase mt-1 hover:bg-emerald-900/60 transition-colors">+ Add Row</button>
       </div>
     </div>
   );
 };
 
-const CateringMatrixBlock = ({ items, headerText }) => {
+const GenericMatrixBlock = ({ title, columns, rows }) => {
   const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
   const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
 
   return (
-    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-emerald-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-emerald-500 z-10' : ''}`}>
-      {enabled && <span className="absolute top-0 left-0 bg-emerald-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Catering Matrix</span>}
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-blue-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-blue-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-blue-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Matrix Data</span>}
 
-      <div className={`bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden max-w-4xl mx-auto ${enabled ? 'pointer-events-none' : ''}`}>
-        <div className="bg-emerald-900 p-4">
-          <h3 className="font-serif italic text-white text-lg tracking-tight leading-none text-center">
-            {headerText}
-          </h3>
+      <div className={`bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden max-w-5xl mx-auto ${enabled ? 'pointer-events-none' : ''}`}>
+        <div className="bg-slate-800 p-4">
+          <h3 className="font-serif italic text-white text-lg tracking-tight leading-none text-center">{title}</h3>
         </div>
-        <div className="divide-y divide-slate-50">
-          {items && items.length > 0 ? items.map((item, i) => (
-            <div key={i} className="p-4 hover:bg-slate-50 transition-all flex flex-col gap-1 text-left">
-              <div className="flex justify-between items-center">
-                <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{item.group}</span>
-                {item.person && <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">PIC: {item.person}</span>}
-              </div>
-              <span className="text-[11px] md:text-[13px] font-bold text-emerald-900 tracking-tight leading-tight">{item.dish}</span>
-            </div>
-          )) : (
-            <div className="p-8 text-center text-slate-400 text-xs italic">No items added yet. Click to edit and add rows.</div>
-          )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                {columns && columns.map((col, i) => (
+                  <th key={i} className="p-3 text-[10px] font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {rows && rows.length > 0 ? rows.map((row, rIndex) => (
+                <tr key={rIndex} className="hover:bg-slate-50 transition-colors">
+                  {columns && columns.map((_, cIndex) => (
+                    <td key={cIndex} className="p-3 text-[12px] font-medium text-slate-700">{row[cIndex]}</td>
+                  ))}
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={columns?.length || 1} className="p-8 text-center text-slate-400 text-xs italic">No data rows added.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 };
 
-CateringMatrixBlock.craft = {
+GenericMatrixBlock.craft = {
   props: {
-    headerText: "Food Contribution Matrix",
-    items: [
-      { group: "Logistics Team", person: "Sarah", dish: "Main Course (Chicken)" },
-      { group: "Decor Team", person: "Mike", dish: "Desserts & Pastries" }
+    title: "Custom Data Matrix",
+    columns: ["Item", "Quantity", "Assigned To"],
+    rows: [
+      ["Tables", "10", "Sarah"],
+      ["Chairs", "50", "Mike"]
     ]
   },
-  related: {
-    settings: CateringMatrixSettings
-  },
+  related: { settings: GenericMatrixSettings },
   rules: { canDrag: () => true }
 };
 
@@ -953,7 +944,11 @@ const EditorSidebar = ({ activeTab }) => {
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">Atomic Blocks</h3>
         <div className="grid grid-cols-2 gap-2 mb-6">
           <button ref={(ref) => connectors.create(ref, <CountdownBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-orange-400 font-bold">+ Countdown</button>
-          <button ref={(ref) => connectors.create(ref, <CateringMatrixBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-emerald-400 font-bold">+ Catering</button>
+
+          {/* Replaced Catering with Generic Matrix here: */}
+          <button ref={(ref) => connectors.create(ref, <GenericMatrixBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-blue-400 font-bold">+ Matrix</button>
+
+          <button ref={(ref) => connectors.create(ref, <CommitteeChecklistBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-purple-400 font-bold">+ Committees</button>
         </div>
 
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">App Components</h3>
@@ -1032,7 +1027,7 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   return (
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
-        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, CateringMatrixBlock }} enabled={isEditing}>
+        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, GenericMatrixBlock, CommitteeChecklistBlock }} enabled={isEditing}>
 
           {isAdmin && (
             <button
