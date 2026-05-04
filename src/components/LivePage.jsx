@@ -6,9 +6,9 @@ import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
-// 1. IMPORT YOUR MAP COMPONENT
-// (If LivePage.jsx is in the same folder as MapRenderer.jsx, leave this as is. If not, adjust the path)
+// 1. IMPORT YOUR CUSTOM COMPONENTS
 import MapRenderer from './MapRenderer';
+import VisionSection from './VisionSection';
 
 // 2. CREATE THE DATA TUNNEL
 export const AppDataContext = createContext();
@@ -34,6 +34,30 @@ const MapBlock = () => {
   );
 };
 MapBlock.craft = { rules: { canDrag: () => true } };
+
+
+// 4. CREATE THE DRAGGABLE VISION BLOCK
+const VisionBlock = () => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+
+  // Pull the vision data and site content out of the tunnel!
+  const { siteContent, visionActs } = useContext(AppDataContext) || { siteContent: {}, visionActs: [] };
+
+  return (
+    <div
+      ref={(ref) => enabled ? connect(drag(ref)) : null}
+      className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-indigo-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-indigo-500 z-10' : ''}`}
+    >
+      {enabled && <span className="absolute top-0 left-0 bg-indigo-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Vision Section</span>}
+      <div className={`${enabled ? 'pointer-events-none' : ''}`}>
+        <VisionSection siteContent={siteContent} visionActs={visionActs} />
+      </div>
+    </div>
+  );
+};
+VisionBlock.craft = { rules: { canDrag: () => true } };
+
 
 // ==========================================
 // 0. PAGE ROOT (The truly invisible canvas)
@@ -410,6 +434,7 @@ const EditorSidebar = ({ activeTab }) => {
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">App Components</h3>
         <div className="grid grid-cols-2 gap-2">
           <button ref={(ref) => connectors.create(ref, <MapBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-blue-400 font-bold">+ Map Layout</button>
+          <button ref={(ref) => connectors.create(ref, <VisionBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-indigo-400 font-bold">+ Vision Area</button>
         </div>
       </div>
 
@@ -477,7 +502,7 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   return (
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
-        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock }} enabled={isEditing}>
+        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock }} enabled={isEditing}>
 
           {isAdmin && (
             <button

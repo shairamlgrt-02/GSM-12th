@@ -436,7 +436,7 @@ export default function ChurchPortal() {
           <LivePage
             isAdmin={isAdmin}
             activeTab={activeTab}
-            appData={{ mapObjects, isBanquet, siteContent }}
+            appData={{ mapObjects, isBanquet, siteContent, visionActs }}
           />
 
           {activeTab === 'home' && (
@@ -452,10 +452,6 @@ export default function ChurchPortal() {
                 </div>
               )}
             </div>
-          )}
-
-          {activeTab === 'vision' && (
-            <VisionSection siteContent={siteContent} visionActs={visionActs} />
           )}
 
           {activeTab === 'program' && (
