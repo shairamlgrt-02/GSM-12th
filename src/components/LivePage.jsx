@@ -394,7 +394,7 @@ const CountdownSettings = () => {
 const CountdownBlock = ({ targetDate, title }) => {
   const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
   const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
-  
+
   // Standalone logic: This block manages its own time!
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
 
@@ -419,7 +419,7 @@ const CountdownBlock = ({ targetDate, title }) => {
   return (
     <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-orange-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-orange-500 z-10' : ''}`}>
       {enabled && <span className="absolute top-0 left-0 bg-orange-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Countdown</span>}
-      
+
       <div className={`flex flex-col items-center bg-white p-6 rounded-2xl border border-slate-100 shadow-sm ${enabled ? 'pointer-events-none' : ''}`}>
         <h3 className="font-serif italic text-xl text-emerald-900 mb-4">{title}</h3>
         <div className="flex gap-4 md:gap-6 text-center justify-center">
@@ -443,6 +443,135 @@ CountdownBlock.craft = {
   },
   related: {
     settings: CountdownSettings
+  },
+  rules: { canDrag: () => true }
+};
+
+
+// 11. CREATE THE CATERING MATRIX SETTINGS & BLOCK
+const CateringMatrixSettings = () => {
+  const { items, headerText, actions: { setProp } } = useNode((node) => ({
+    items: node.data.props.items,
+    headerText: node.data.props.headerText
+  }));
+
+  const updateItem = (index, field, value) => {
+    setProp((props) => {
+      props.items[index][field] = value;
+    });
+  };
+
+  const addItem = () => {
+    setProp((props) => {
+      props.items.push({ group: 'New Group', person: '', dish: 'New Dish' });
+    });
+  };
+
+  const removeItem = (index) => {
+    setProp((props) => {
+      props.items.splice(index, 1);
+    });
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in">
+      <div>
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Matrix Header</label>
+        <input
+          type="text"
+          value={headerText || ''}
+          onChange={(e) => setProp((props) => props.headerText = e.target.value)}
+          className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-3 text-xs focus:border-emerald-500 outline-none"
+        />
+      </div>
+
+      <div className="space-y-4">
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Matrix Rows</label>
+        {items && items.map((item, i) => (
+          <div key={i} className="p-3 bg-slate-800 border border-slate-700 rounded-lg space-y-2 relative">
+            <button
+              onClick={() => removeItem(i)}
+              className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center hover:bg-red-600 transition-colors"
+            >
+              ✕
+            </button>
+            <input
+              type="text"
+              placeholder="Group (e.g., Team A)"
+              value={item.group}
+              onChange={(e) => updateItem(i, 'group', e.target.value)}
+              className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-[10px] focus:border-emerald-500 outline-none"
+            />
+            <input
+              type="text"
+              placeholder="Person in Charge (Optional)"
+              value={item.person}
+              onChange={(e) => updateItem(i, 'person', e.target.value)}
+              className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-[10px] focus:border-emerald-500 outline-none"
+            />
+            <input
+              type="text"
+              placeholder="Dish / Contribution"
+              value={item.dish}
+              onChange={(e) => updateItem(i, 'dish', e.target.value)}
+              className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-[10px] focus:border-emerald-500 outline-none"
+            />
+          </div>
+        ))}
+
+        <button
+          onClick={addItem}
+          className="w-full py-2 bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/60 border border-emerald-900/50 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all mt-2"
+        >
+          + Add Row
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const CateringMatrixBlock = ({ items, headerText }) => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-emerald-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-emerald-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-emerald-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Catering Matrix</span>}
+
+      <div className={`bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden max-w-4xl mx-auto ${enabled ? 'pointer-events-none' : ''}`}>
+        <div className="bg-emerald-900 p-4">
+          <h3 className="font-serif italic text-white text-lg tracking-tight leading-none text-center">
+            {headerText}
+          </h3>
+        </div>
+        <div className="divide-y divide-slate-50">
+          {items && items.length > 0 ? items.map((item, i) => (
+            <div key={i} className="p-4 hover:bg-slate-50 transition-all flex flex-col gap-1 text-left">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{item.group}</span>
+                {item.person && <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">PIC: {item.person}</span>}
+              </div>
+              <span className="text-[11px] md:text-[13px] font-bold text-emerald-900 tracking-tight leading-tight">{item.dish}</span>
+            </div>
+          )) : (
+            <div className="p-8 text-center text-slate-400 text-xs italic">No items added yet. Click to edit and add rows.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+CateringMatrixBlock.craft = {
+  props: {
+    headerText: "Food Contribution Matrix",
+    items: [
+      { group: "Logistics Team", person: "Sarah", dish: "Main Course (Chicken)" },
+      { group: "Decor Team", person: "Mike", dish: "Desserts & Pastries" }
+    ]
+  },
+  related: {
+    settings: CateringMatrixSettings
   },
   rules: { canDrag: () => true }
 };
@@ -824,6 +953,7 @@ const EditorSidebar = ({ activeTab }) => {
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">Atomic Blocks</h3>
         <div className="grid grid-cols-2 gap-2 mb-6">
           <button ref={(ref) => connectors.create(ref, <CountdownBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-orange-400 font-bold">+ Countdown</button>
+          <button ref={(ref) => connectors.create(ref, <CateringMatrixBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-emerald-400 font-bold">+ Catering</button>
         </div>
 
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">App Components</h3>
@@ -902,7 +1032,7 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   return (
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
-      <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock }} enabled={isEditing}>
+        <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, CateringMatrixBlock }} enabled={isEditing}>
 
           {isAdmin && (
             <button
