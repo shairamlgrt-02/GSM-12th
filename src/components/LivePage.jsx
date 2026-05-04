@@ -360,6 +360,94 @@ const PlanningCenterBlock = () => {
 PlanningCenterBlock.craft = { rules: { canDrag: () => true } };
 
 
+// 10. CREATE THE STANDALONE COUNTDOWN SETTINGS & BLOCK
+const CountdownSettings = () => {
+  const { targetDate, title, actions: { setProp } } = useNode((node) => ({
+    targetDate: node.data.props.targetDate,
+    title: node.data.props.title
+  }));
+
+  return (
+    <div className="space-y-4 animate-in fade-in">
+      <div>
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Block Title</label>
+        <input
+          type="text"
+          value={title || ''}
+          onChange={(e) => setProp((props) => props.title = e.target.value)}
+          className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-3 text-xs focus:border-orange-500 outline-none"
+        />
+      </div>
+      <div>
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Date & Time</label>
+        <input
+          type="datetime-local"
+          value={targetDate || ''}
+          onChange={(e) => setProp((props) => props.targetDate = e.target.value)}
+          className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-3 text-xs focus:border-orange-500 outline-none [color-scheme:dark]"
+        />
+      </div>
+    </div>
+  );
+};
+
+const CountdownBlock = ({ targetDate, title }) => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+  
+  // Standalone logic: This block manages its own time!
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
+
+  useEffect(() => {
+    if (!targetDate) return;
+    const timer = setInterval(() => {
+      const diff = new Date(targetDate).getTime() - new Date().getTime();
+      if (diff > 0) {
+        setTimeLeft({
+          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+          mins: Math.floor((diff / 1000 / 60) % 60),
+          secs: Math.floor((diff / 1000) % 60)
+        });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, mins: 0, secs: 0 });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-orange-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-orange-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-orange-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Countdown</span>}
+      
+      <div className={`flex flex-col items-center bg-white p-6 rounded-2xl border border-slate-100 shadow-sm ${enabled ? 'pointer-events-none' : ''}`}>
+        <h3 className="font-serif italic text-xl text-emerald-900 mb-4">{title}</h3>
+        <div className="flex gap-4 md:gap-6 text-center justify-center">
+          {Object.entries(timeLeft).map(([unit, val]) => (
+            <div key={unit} className="flex flex-col min-w-[50px]">
+              <span className="text-3xl md:text-4xl font-black text-emerald-900 tracking-tighter leading-none">{val}</span>
+              <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold mt-1">{unit}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// We attach default props AND the Settings Panel to the block!
+CountdownBlock.craft = {
+  props: {
+    title: "Event Countdown",
+    targetDate: "2026-06-01T09:00"
+  },
+  related: {
+    settings: CountdownSettings
+  },
+  rules: { canDrag: () => true }
+};
+
+
 // ==========================================
 // 0. PAGE ROOT (The truly invisible canvas)
 // ==========================================
@@ -732,6 +820,12 @@ const EditorSidebar = ({ activeTab }) => {
           <button ref={(ref) => connectors.create(ref, <CTAButton />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700">+ Button</button>
         </div>
 
+        {/* --- NEW ATOMIC BLOCKS SECTION --- */}
+        <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">Atomic Blocks</h3>
+        <div className="grid grid-cols-2 gap-2 mb-6">
+          <button ref={(ref) => connectors.create(ref, <CountdownBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-orange-400 font-bold">+ Countdown</button>
+        </div>
+
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">App Components</h3>
         <div className="grid grid-cols-2 gap-2">
           <button ref={(ref) => connectors.create(ref, <SiteHeaderBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-pink-400 font-bold">+ Header</button>
@@ -808,7 +902,7 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
   return (
     <AppDataContext.Provider value={appData}>
       <div key={activeTab} className="w-full relative">
-      <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock }} enabled={isEditing}>
+      <Editor resolver={{ PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock }} enabled={isEditing}>
 
           {isAdmin && (
             <button
