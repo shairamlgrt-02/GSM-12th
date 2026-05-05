@@ -184,22 +184,162 @@ const RegistrationBlock = () => {
 RegistrationBlock.craft = { rules: { canDrag: () => true } };
 
 
-// 9. CREATE THE PLANNING CENTER BLOCK
+// 9. CREATE THE TABS BLOCK
+// --- 1. THE DROP ZONE (Inside each tab) ---
+const TabDropZone = ({ children }) => {
+  const { connectors: { connect } } = useNode();
+  return (
+    <div ref={connect} className="min-h-[150px] w-full p-6 bg-white rounded-b-xl transition-all">
+      {children ? children : <div className="text-center text-slate-300 text-xs py-8 border-2 border-dashed border-slate-100 rounded-lg">Drag blocks here...</div>}
+    </div>
+  );
+};
+TabDropZone.craft = { rules: { canDrag: () => false } };
+
+// --- 2. THE SETTINGS (To add/rename tabs in the sidebar) ---
+const TabsBlockSettings = () => {
+  const { actions: { setProp }, tabs } = useNode((node) => ({
+    tabs: node.data.props.tabs
+  }));
+
+  const addTab = () => setProp(props => props.tabs.push({ id: `tab_${Date.now()}`, label: 'New Tab' }));
+  const updateTab = (index, val) => setProp(props => props.tabs[index].label = val);
+  const removeTab = (index) => setProp(props => {
+    if (props.tabs.length > 1) props.tabs.splice(index, 1);
+    else alert("You must have at least one tab!");
+  });
+
+  return (
+    <div className="space-y-4 p-4 bg-slate-50 border-t border-slate-200 mt-4">
+      <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Manage Tabs</h3>
+      <div className="space-y-2">
+        {tabs.map((tab, i) => (
+          <div key={tab.id} className="flex gap-2 items-center">
+            <input
+              type="text"
+              value={tab.label}
+              onChange={(e) => updateTab(i, e.target.value)}
+              className="flex-1 bg-white border border-slate-200 p-2 rounded-lg text-xs outline-none focus:border-blue-500"
+            />
+            <button onClick={() => removeTab(i)} className="text-rose-400 hover:text-rose-600 font-bold p-2 text-xs">✕</button>
+          </div>
+        ))}
+      </div>
+      <button onClick={addTab} className="w-full bg-slate-800 hover:bg-slate-900 text-white p-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">
+        + Add Tab
+      </button>
+    </div>
+  );
+};
+
+// --- 3. THE MAIN TABS BLOCK ---
+const TabsBlock = ({ tabs }) => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+  const [activeTabId, setActiveTabId] = useState(tabs[0]?.id);
+
+  // Safety check: if a tab is deleted, fallback to the first available tab
+  const currentTabExists = tabs.find(t => t.id === activeTabId);
+  const currentActiveTab = currentTabExists ? activeTabId : tabs[0]?.id;
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full max-w-5xl mx-auto my-8 transition-all ${enabled ? 'border-2 border-dashed border-blue-300 py-4 min-h-[200px]' : ''} ${selected && enabled ? 'ring-4 ring-blue-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-blue-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Tabs Container</span>}
+
+      <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden ${enabled ? 'pointer-events-none' : ''}`}>
+
+        {/* TAB NAVIGATION HEADER */}
+        <div className="flex bg-slate-50 border-b border-slate-200 px-2 pt-2 gap-1 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTabId(tab.id)}
+              className={`px-6 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${currentActiveTab === tab.id ? 'bg-white text-blue-900 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] border-t-2 border-blue-500' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 border-t-2 border-transparent'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB CONTENT (Hidden via CSS when not active so Craft doesn't crash) */}
+        <div className="bg-white pointer-events-auto">
+          {tabs.map((tab) => (
+            <div key={tab.id} className={currentActiveTab === tab.id ? 'block' : 'hidden'}>
+              {/* Every tab gets its own unique canvas drop zone! */}
+              <Element canvas id={tab.id} is={TabDropZone} />
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+TabsBlock.craft = {
+  props: {
+    tabs: [
+      { id: 'tab_1', label: 'First Tab' },
+      { id: 'tab_2', label: 'Second Tab' }
+    ]
+  },
+  related: { settings: TabsBlockSettings },
+  rules: { canDrag: () => true }
+};
+
+
+// 10. CREATE THE PLANNING CENTER BLOCK
 const PlanningCenterBlock = () => {
   const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
   const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
 
   const {
     isPrivateUnlocked, setIsPrivateUnlocked, passInput, setPassInput, internalSubTab, setInternalSubTab,
-    siteContent, catering, logisticsCards, committees, updateField, isOverdue
+    siteContent, catering, logisticsCards, committees, updateField, isOverdue,
+    registrations, setRegistrations
   } = useContext(AppDataContext) || {};
+
+  // --- NEW UI STATE FOR SEARCH AND FILTER ---
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [selectedFormFilter, setSelectedFormFilter] = React.useState('All');
+
+  // Extract unique form names for the dropdown
+  const uniqueForms = ['All', ...new Set((registrations || []).map(r => r.formName))];
+
+  // Filter the table based on search and selected form
+  const filteredRegistrations = (registrations || []).filter(reg => {
+    const matchesForm = selectedFormFilter === 'All' || reg.formName === selectedFormFilter;
+    const matchesSearch = reg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reg.email.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesForm && matchesSearch;
+  });
+
+  const updateRegistrationStatus = (id, newStatus) => {
+    if (setRegistrations) {
+      setRegistrations(prev => prev.map(reg => reg.id === id ? { ...reg, status: newStatus } : reg));
+    }
+  };
+
+  const deleteRegistration = (id) => {
+    if (window.confirm("Are you sure you want to delete this submission?")) {
+      if (setRegistrations) {
+        setRegistrations(prev => prev.filter(reg => reg.id !== id));
+      }
+    }
+  };
+
+  const statusColors = {
+    Pending: "bg-amber-100 text-amber-800 border-amber-200",
+    Confirmed: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    Cancelled: "bg-rose-100 text-rose-800 border-rose-200"
+  };
 
   return (
     <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-purple-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-purple-500 z-10' : ''}`}>
       {enabled && <span className="absolute top-0 left-0 bg-purple-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Planning Center</span>}
       <div className={`${enabled ? 'pointer-events-none' : ''}`}>
 
-        <div className="max-w-4xl mx-auto py-10 px-4 animate-in fade-in duration-700">
+        <div className="max-w-5xl mx-auto py-10 px-4 animate-in fade-in duration-700">
           {!isPrivateUnlocked ? (
             /* PRIVATE LOGIN GATE */
             <div className="max-w-md mx-auto mt-10">
@@ -241,24 +381,30 @@ const PlanningCenterBlock = () => {
             /* UNLOCKED PLANNING CENTER DASHBOARD */
             <div className="animate-in slide-in-from-bottom-6 duration-500">
               {/* SUB-NAV */}
-              <div className="flex bg-emerald-900/5 p-1 rounded-xl gap-2 shadow-inner mb-10 max-w-lg mx-auto">
+              <div className="flex bg-emerald-900/5 p-1 rounded-xl gap-1 shadow-inner mb-10 max-w-2xl mx-auto">
                 <button
                   onClick={() => setInternalSubTab && setInternalSubTab('logistics')}
-                  className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${internalSubTab === 'logistics' ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
+                  className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${internalSubTab === 'logistics' || !internalSubTab ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900 hover:bg-emerald-900/10'}`}
                 >
                   Logistics
                 </button>
                 <button
                   onClick={() => setInternalSubTab && setInternalSubTab('committees')}
-                  className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${internalSubTab === 'committees' ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900'}`}
+                  className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${internalSubTab === 'committees' ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900 hover:bg-emerald-900/10'}`}
                 >
                   Committees
+                </button>
+                <button
+                  onClick={() => setInternalSubTab && setInternalSubTab('registration')}
+                  className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${internalSubTab === 'registration' ? 'bg-emerald-900 text-white shadow-md' : 'text-emerald-900/40 hover:text-emerald-900 hover:bg-emerald-900/10'}`}
+                >
+                  Registration
                 </button>
               </div>
 
               {/* LOGISTICS CONTENT */}
               {(internalSubTab === 'logistics' || !internalSubTab) && (
-                <div className="animate-in fade-in pt-0 space-y-6">
+                <div className="animate-in fade-in pt-0 space-y-6 max-w-4xl mx-auto">
                   <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit">
                     <div className="bg-emerald-900 p-4">
                       <h3 className="font-serif italic text-white text-lg tracking-tight leading-none text-center">
@@ -295,7 +441,7 @@ const PlanningCenterBlock = () => {
 
               {/* COMMITTEES CONTENT */}
               {internalSubTab === 'committees' && committees && (
-                <div className="animate-in fade-in pt-0 space-y-6">
+                <div className="animate-in fade-in pt-0 space-y-6 max-w-4xl mx-auto">
                   <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
                     <div className="flex justify-between items-end mb-1">
                       <h3 className="font-black text-emerald-900 text-[9px] uppercase tracking-widest italic opacity-40">Event Readiness</h3>
@@ -349,6 +495,107 @@ const PlanningCenterBlock = () => {
                   </div>
                 </div>
               )}
+
+              {/* NEW REGISTRATION CONTENT WITH SEARCH, FILTER, AND DELETE */}
+              {internalSubTab === 'registration' && (
+                <div className="animate-in fade-in pt-0 space-y-6">
+                  <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden text-left">
+                    <div className="bg-emerald-900 p-4 flex justify-between items-center">
+                      <h3 className="font-serif italic text-white text-lg tracking-tight leading-none">
+                        Guest Registrations
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-emerald-100 text-[10px] uppercase font-bold tracking-widest">{filteredRegistrations.length} Total</span>
+                      </div>
+                    </div>
+
+                    {/* SEARCH AND FILTER BAR */}
+                    <div className="p-4 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row gap-4">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          placeholder="Search by name or email..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 outline-none"
+                        />
+                      </div>
+                      <div className="sm:w-64">
+                        <select
+                          value={selectedFormFilter}
+                          onChange={(e) => setSelectedFormFilter(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 outline-none cursor-pointer"
+                        >
+                          {uniqueForms.map(f => (
+                            <option key={f} value={f}>{f === 'All' ? 'All Forms' : f}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left text-slate-600">
+                        <thead className="text-[9px] text-slate-400 uppercase tracking-widest bg-slate-50/50 border-b border-slate-100">
+                          <tr>
+                            <th className="px-6 py-4 font-black">Name / Email</th>
+                            <th className="px-6 py-4 font-black">Form Source</th>
+                            <th className="px-6 py-4 font-black">Date & Time</th>
+                            <th className="px-6 py-4 font-black text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {filteredRegistrations.length === 0 ? (
+                            <tr>
+                              <td colSpan="4" className="px-6 py-12 text-center text-slate-400">
+                                <p className="italic mb-1">No registrations found.</p>
+                                {searchQuery && <p className="text-xs">Try clearing your search or filter.</p>}
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredRegistrations.map((reg) => (
+                              <tr key={reg.id} className="hover:bg-slate-50/50 transition-colors group">
+                                <td className="px-6 py-4">
+                                  <div className="font-bold text-slate-800">{reg.name}</div>
+                                  <div className="text-xs text-slate-400">{reg.email} • Diet: {reg.diet}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">{reg.formName}</span>
+                                </td>
+                                <td className="px-6 py-4 text-slate-400 text-xs">
+                                  {reg.date}
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex items-center justify-end gap-3">
+                                    <select
+                                      value={reg.status}
+                                      onChange={(e) => updateRegistrationStatus(reg.id, e.target.value)}
+                                      className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border outline-none cursor-pointer ${statusColors[reg.status]}`}
+                                    >
+                                      <option value="Pending">Pending</option>
+                                      <option value="Confirmed">Confirmed</option>
+                                      <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                    <button
+                                      onClick={() => deleteRegistration(reg.id)}
+                                      className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                                      title="Delete Submission"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
         </div>
@@ -360,7 +607,7 @@ const PlanningCenterBlock = () => {
 PlanningCenterBlock.craft = { rules: { canDrag: () => true } };
 
 
-// 10. CREATE THE STANDALONE COUNTDOWN SETTINGS & BLOCK
+// 11. CREATE THE STANDALONE COUNTDOWN SETTINGS & BLOCK
 const CountdownSettings = () => {
   const { targetDate, title, actions: { setProp } } = useNode((node) => ({
     targetDate: node.data.props.targetDate,
@@ -448,103 +695,161 @@ CountdownBlock.craft = {
 };
 
 
-// 11. CREATE THE GENERIC MATRIX SETTINGS & BLOCK
+// 12. CREATE THE ADVANCED MATRIX SETTINGS & BLOCK
 const GenericMatrixSettings = () => {
-  const { title, columns, rows, actions: { setProp } } = useNode((node) => ({
+  const { title, columns, rows, widths, actions: { setProp } } = useNode((node) => ({
     title: node.data.props.title,
     columns: node.data.props.columns,
-    rows: node.data.props.rows
+    rows: node.data.props.rows,
+    widths: node.data.props.widths || [] // Fallback for backwards compatibility
   }));
 
-  // Column Handlers
+  // Ensure widths array matches columns length
+  const safeWidths = columns.map((_, i) => widths[i] || "auto");
+
   const addColumn = () => setProp(p => {
     p.columns.push(`Col ${p.columns.length + 1}`);
-    p.rows.forEach(row => row.push("")); // Add an empty cell to every existing row
-  });
-  const updateColumn = (index, val) => setProp(p => p.columns[index] = val);
-  const removeColumn = (index) => setProp(p => {
-    p.columns.splice(index, 1);
-    p.rows.forEach(row => row.splice(index, 1)); // Remove that cell from every row
+    if (!p.widths) p.widths = safeWidths;
+    p.widths.push("auto");
+    p.rows.forEach(row => row.push(""));
   });
 
-  // Row Handlers
+  const updateColumn = (index, val) => setProp(p => p.columns[index] = val);
+  const updateWidth = (index, val) => setProp(p => {
+    if (!p.widths) p.widths = safeWidths;
+    p.widths[index] = val;
+  });
+
+  const removeColumn = (index) => setProp(p => {
+    p.columns.splice(index, 1);
+    if (p.widths) p.widths.splice(index, 1);
+    p.rows.forEach(row => row.splice(index, 1));
+  });
+
+  const moveColumn = (index, dir) => setProp(p => {
+    if ((dir === -1 && index === 0) || (dir === 1 && index === p.columns.length - 1)) return;
+    const target = index + dir;
+    // Swap Headers
+    [p.columns[index], p.columns[target]] = [p.columns[target], p.columns[index]];
+    // Swap Widths
+    if (!p.widths) p.widths = safeWidths;
+    [p.widths[index], p.widths[target]] = [p.widths[target], p.widths[index]];
+    // Swap Data
+    p.rows.forEach(row => {
+      [row[index], row[target]] = [row[target], row[index]];
+    });
+  });
+
   const addRow = () => setProp(p => p.rows.push(new Array(p.columns.length).fill("")));
   const updateCell = (rowIndex, colIndex, val) => setProp(p => p.rows[rowIndex][colIndex] = val);
   const removeRow = (index) => setProp(p => p.rows.splice(index, 1));
+
+  const moveRow = (index, dir) => setProp(p => {
+    if ((dir === -1 && index === 0) || (dir === 1 && index === p.rows.length - 1)) return;
+    const target = index + dir;
+    [p.rows[index], p.rows[target]] = [p.rows[target], p.rows[index]];
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in">
       <div>
         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Matrix Title</label>
-        <input type="text" value={title || ''} onChange={(e) => setProp(p => p.title = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-3 text-xs focus:border-blue-500 outline-none" />
+        <input type="text" value={title || ''} onChange={(e) => setProp(p => p.title = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-3 text-xs focus:border-blue-500 outline-none" placeholder="e.g., Event Program" />
       </div>
 
-      {/* MANAGE COLUMNS */}
       <div>
-        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Columns</label>
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Columns & Widths</label>
         {columns.map((col, i) => (
-          <div key={i} className="flex gap-2 mb-2">
-            <input type="text" value={col} onChange={(e) => updateColumn(i, e.target.value)} className="flex-1 bg-slate-900 text-white border border-slate-700 rounded p-2 text-xs focus:border-blue-500 outline-none" />
-            <button onClick={() => removeColumn(i)} className="bg-red-500/20 text-red-500 px-2 rounded hover:bg-red-500 hover:text-white text-xs transition-colors">✕</button>
+          <div key={i} className="flex gap-1 mb-2 items-center bg-slate-800 p-1.5 rounded border border-slate-700">
+            <div className="flex flex-col gap-1">
+              <button onClick={() => moveColumn(i, -1)} disabled={i === 0} className="text-slate-400 hover:text-white disabled:opacity-30 text-[10px]">◀</button>
+              <button onClick={() => moveColumn(i, 1)} disabled={i === columns.length - 1} className="text-slate-400 hover:text-white disabled:opacity-30 text-[10px]">▶</button>
+            </div>
+            <div className="flex-1 space-y-1">
+              <input type="text" value={col} onChange={(e) => updateColumn(i, e.target.value)} placeholder="Header Name" className="w-full bg-slate-900 text-white rounded p-1.5 text-xs outline-none focus:ring-1 ring-blue-500" />
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] text-slate-500 uppercase">Width:</span>
+                <select value={safeWidths[i]} onChange={(e) => updateWidth(i, e.target.value)} className="bg-slate-900 text-slate-300 text-[10px] rounded p-1 outline-none flex-1">
+                  <option value="auto">Auto</option>
+                  <option value="10%">10%</option>
+                  <option value="20%">20% (Small)</option>
+                  <option value="30%">30%</option>
+                  <option value="50%">50% (Half)</option>
+                  <option value="70%">70% (Large)</option>
+                </select>
+              </div>
+            </div>
+            <button onClick={() => removeColumn(i)} className="text-red-400 hover:bg-red-500/20 px-2 py-3 rounded text-xs">✕</button>
           </div>
         ))}
-        <button onClick={addColumn} className="w-full py-1.5 bg-blue-900/40 text-blue-400 rounded border border-blue-900/50 text-[10px] font-black uppercase mt-1 hover:bg-blue-900/60 transition-colors">+ Add Column</button>
+        <button onClick={addColumn} className="w-full py-1.5 bg-blue-900/40 text-blue-400 rounded border border-blue-900/50 text-[10px] font-black uppercase mt-1 hover:bg-blue-900/60">+ Add Column</button>
       </div>
 
-      {/* MANAGE ROWS */}
       <div>
         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data Rows</label>
         {rows.map((row, rIndex) => (
           <div key={rIndex} className="p-3 bg-slate-800 border border-slate-700 rounded-lg mb-3 relative">
-            <button onClick={() => removeRow(rIndex)} className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold hover:bg-red-600 z-10">✕</button>
-            <div className="space-y-2">
+            <div className="absolute -top-3 -right-2 flex gap-1 bg-slate-900 border border-slate-700 rounded-lg overflow-hidden z-10 shadow-lg">
+              <button onClick={() => moveRow(rIndex, -1)} disabled={rIndex === 0} className="px-2 py-1 text-slate-300 hover:bg-slate-700 disabled:opacity-30 text-xs">▲</button>
+              <button onClick={() => moveRow(rIndex, 1)} disabled={rIndex === rows.length - 1} className="px-2 py-1 text-slate-300 hover:bg-slate-700 disabled:opacity-30 text-xs">▼</button>
+              <button onClick={() => removeRow(rIndex)} className="px-2 py-1 text-red-400 hover:bg-red-500 hover:text-white text-xs">✕</button>
+            </div>
+            <div className="space-y-2 mt-2">
               {columns.map((col, cIndex) => (
                 <div key={cIndex}>
-                  <span className="text-[8px] uppercase text-slate-500 block mb-1">{col}</span>
-                  <input type="text" value={row[cIndex] || ""} onChange={(e) => updateCell(rIndex, cIndex, e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-xs focus:border-blue-500 outline-none" />
+                  <span className="text-[8px] uppercase text-blue-300 block mb-1 font-bold">{col}</span>
+                  <textarea value={row[cIndex] || ""} onChange={(e) => updateCell(rIndex, cIndex, e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-2 text-xs focus:border-blue-500 outline-none resize-none min-h-[40px]" />
                 </div>
               ))}
             </div>
           </div>
         ))}
-        <button onClick={addRow} className="w-full py-2 bg-emerald-900/40 text-emerald-400 rounded-lg border border-emerald-900/50 text-[10px] font-black uppercase mt-1 hover:bg-emerald-900/60 transition-colors">+ Add Row</button>
+        <button onClick={addRow} className="w-full py-2 bg-emerald-900/40 text-emerald-400 rounded-lg border border-emerald-900/50 text-[10px] font-black uppercase mt-1 hover:bg-emerald-900/60">+ Add Row</button>
       </div>
     </div>
   );
 };
 
-const GenericMatrixBlock = ({ title, columns, rows }) => {
+const GenericMatrixBlock = ({ title, columns, rows, widths }) => {
   const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
   const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
 
+  const safeWidths = columns?.map((_, i) => (widths && widths[i]) ? widths[i] : "auto");
+
   return (
     <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full transition-all ${enabled ? 'border-2 border-dashed border-blue-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-blue-500 z-10' : ''}`}>
-      {enabled && <span className="absolute top-0 left-0 bg-blue-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Matrix Data</span>}
+      {enabled && <span className="absolute top-0 left-0 bg-blue-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Table Matrix</span>}
+      <div className={`bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden max-w-5xl mx-auto ${enabled ? 'pointer-events-none' : ''}`}>
 
-      <div className={`bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden max-w-5xl mx-auto ${enabled ? 'pointer-events-none' : ''}`}>
-        <div className="bg-slate-800 p-4">
-          <h3 className="font-serif italic text-white text-lg tracking-tight leading-none text-center">{title}</h3>
-        </div>
+        {/* Main Title */}
+        {title && (
+          <div className="bg-slate-900 p-4 border-b-4 border-blue-500">
+            <h3 className="font-serif text-white text-xl tracking-tight text-center">{title}</h3>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse table-fixed">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
+              <tr className="bg-slate-100 border-b-2 border-slate-200">
                 {columns && columns.map((col, i) => (
-                  <th key={i} className="p-3 text-[10px] font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">{col}</th>
+                  <th key={i} style={{ width: safeWidths[i] }} className="p-4 text-[11px] font-black uppercase text-slate-600 tracking-wider">
+                    {col}
+                  </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-100">
               {rows && rows.length > 0 ? rows.map((row, rIndex) => (
                 <tr key={rIndex} className="hover:bg-slate-50 transition-colors">
                   {columns && columns.map((_, cIndex) => (
-                    <td key={cIndex} className="p-3 text-[12px] font-medium text-slate-700">{row[cIndex]}</td>
+                    <td key={cIndex} className="p-4 text-[13px] text-slate-800 align-top whitespace-pre-wrap">
+                      {row[cIndex]}
+                    </td>
                   ))}
                 </tr>
               )) : (
-                <tr>
-                  <td colSpan={columns?.length || 1} className="p-8 text-center text-slate-400 text-xs italic">No data rows added.</td>
-                </tr>
+                <tr><td colSpan={columns?.length || 1} className="p-8 text-center text-slate-400 text-xs italic">No data rows added.</td></tr>
               )}
             </tbody>
           </table>
@@ -556,11 +861,12 @@ const GenericMatrixBlock = ({ title, columns, rows }) => {
 
 GenericMatrixBlock.craft = {
   props: {
-    title: "Custom Data Matrix",
-    columns: ["Item", "Quantity", "Assigned To"],
+    title: "Event Program",
+    columns: ["Time", "Activity", "Location"],
+    widths: ["20%", "50%", "30%"],
     rows: [
-      ["Tables", "10", "Sarah"],
-      ["Chairs", "50", "Mike"]
+      ["09:00 AM", "Registration & Welcome Coffee", "Main Lobby"],
+      ["10:00 AM", "Keynote Speech", "Grand Auditorium"]
     ]
   },
   related: { settings: GenericMatrixSettings },
@@ -568,7 +874,7 @@ GenericMatrixBlock.craft = {
 };
 
 
-// 12. CREATE THE COMMITTEE CHECKLIST SETTINGS & BLOCK
+// 13. CREATE THE COMMITTEE CHECKLIST SETTINGS & BLOCK
 const CommitteeChecklistSettings = () => {
   const { committees, actions: { setProp } } = useNode((node) => ({ committees: node.data.props.committees }));
   const addCommittee = () => setProp(p => p.committees.push({ title: "New Committee", tasks: [] }));
@@ -659,6 +965,223 @@ const CommitteeChecklistBlock = ({ committees }) => {
 CommitteeChecklistBlock.craft = {
   props: { committees: [{ title: "Logistics", tasks: [{ text: "Confirm Venue", assignee: "Sarah", dueDate: "", completed: true }] }] },
   related: { settings: CommitteeChecklistSettings },
+  rules: { canDrag: () => true }
+};
+
+
+// 14. CREATE THE FORM BUILDER SETTINGS & BLOCK
+const FormBuilderSettings = () => {
+  const { title, description, submitText, fields, actions: { setProp } } = useNode((node) => ({
+    title: node.data.props.title,
+    description: node.data.props.description,
+    submitText: node.data.props.submitText,
+    fields: node.data.props.fields || []
+  }));
+
+  const addField = () => setProp(p => p.fields.push({ type: 'text', label: 'New Field', placeholder: '', required: false, options: '', allowOther: false }));
+  const removeField = (index) => setProp(p => p.fields.splice(index, 1));
+  const updateField = (index, key, val) => setProp(p => p.fields[index][key] = val);
+  const moveField = (index, dir) => setProp(p => {
+    if ((dir === -1 && index === 0) || (dir === 1 && index === p.fields.length - 1)) return;
+    const target = index + dir;
+    [p.fields[index], p.fields[target]] = [p.fields[target], p.fields[index]];
+  });
+
+  return (
+    <div className="space-y-6 animate-in fade-in">
+      {/* Header Info */}
+      <div className="space-y-3">
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Form Details</label>
+        <input type="text" value={title} onChange={(e) => setProp(p => p.title = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-xs focus:border-rose-500 outline-none" placeholder="Form Title" />
+        <textarea value={description} onChange={(e) => setProp(p => p.description = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-xs focus:border-rose-500 outline-none resize-none min-h-[60px]" placeholder="Form Description" />
+        <input type="text" value={submitText} onChange={(e) => setProp(p => p.submitText = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-xs focus:border-rose-500 outline-none" placeholder="Submit Button Text" />
+      </div>
+
+      {/* Fields */}
+      <div>
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Form Fields</label>
+        <div className="space-y-3">
+          {fields.map((field, i) => (
+            <div key={i} className="p-3 bg-slate-800 border border-slate-700 rounded-lg relative space-y-2">
+              <div className="absolute -top-3 -right-2 flex gap-1 bg-slate-900 border border-slate-700 rounded-lg overflow-hidden z-10 shadow-lg">
+                <button onClick={() => moveField(i, -1)} disabled={i === 0} className="px-2 py-1 text-slate-300 hover:bg-slate-700 disabled:opacity-30 text-[10px]">▲</button>
+                <button onClick={() => moveField(i, 1)} disabled={i === fields.length - 1} className="px-2 py-1 text-slate-300 hover:bg-slate-700 disabled:opacity-30 text-[10px]">▼</button>
+                <button onClick={() => removeField(i)} className="px-2 py-1 text-red-400 hover:bg-red-500 hover:text-white text-[10px]">✕</button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <input type="text" value={field.label} onChange={(e) => updateField(i, 'label', e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-1.5 text-xs focus:border-rose-500 outline-none" placeholder="Field Label" />
+                <select value={field.type} onChange={(e) => updateField(i, 'type', e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-1.5 text-xs focus:border-rose-500 outline-none">
+                  <option value="text">Short Text</option>
+                  <option value="email">Email</option>
+                  <option value="textarea">Long Text</option>
+                  <option value="select">Dropdown</option>
+                  <option value="radio">Multiple Choice</option>
+                  <option value="checkbox">Checkboxes</option>
+                </select>
+              </div>
+
+              {['text', 'email', 'textarea'].includes(field.type) && (
+                <input type="text" value={field.placeholder || ''} onChange={(e) => updateField(i, 'placeholder', e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-1.5 text-xs focus:border-rose-500 outline-none" placeholder="Placeholder text..." />
+              )}
+
+              {['select', 'radio', 'checkbox'].includes(field.type) && (
+                <input type="text" value={field.options || ''} onChange={(e) => updateField(i, 'options', e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-1.5 text-xs focus:border-rose-500 outline-none" placeholder="Options (comma separated)" />
+              )}
+
+              <div className="flex items-center justify-between mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={field.required} onChange={(e) => updateField(i, 'required', e.target.checked)} className="accent-rose-500 rounded" />
+                  <span className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Required</span>
+                </label>
+
+                {['radio', 'checkbox'].includes(field.type) && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={field.allowOther || false} onChange={(e) => updateField(i, 'allowOther', e.target.checked)} className="accent-rose-500 rounded" />
+                    <span className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Add "Other"</span>
+                  </label>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={addField} className="w-full py-2 bg-rose-900/40 text-rose-400 hover:bg-rose-900/60 border border-rose-900/50 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all mt-3">+ Add Field</button>
+      </div>
+    </div>
+  );
+};
+
+const FormBuilderBlock = ({ title, description, submitText, fields }) => {
+  const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+  const { setRegistrations } = useContext(AppDataContext) || {};
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (enabled) return;
+
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    fields.forEach((field, i) => {
+      if (field.type === 'checkbox') {
+        data[field.label] = formData.getAll(`field_${i}`);
+      }
+    });
+
+    const findKey = (str) => Object.keys(data).find(k => k.toLowerCase().includes(str));
+
+    const newRegistration = {
+      id: Date.now(),
+      formName: title || "Untitled Form", // Connects the submission to this specific form
+      name: data[findKey('name')] || Object.values(data)[0] || "Guest",
+      email: data[findKey('email')] || "N/A",
+      diet: data[findKey('diet')] || "None",
+      status: "Pending",
+      date: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) // Exact time
+    };
+
+    if (setRegistrations) {
+      setRegistrations(prev => [...prev, newRegistration]);
+      alert("Registration captured! Check the Planning Center.");
+      e.target.reset();
+    }
+  };
+
+  const safeName = (label, index) => label ? label.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() : `field_${index}`;
+
+  return (
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full max-w-2xl mx-auto transition-all ${enabled ? 'border-2 border-dashed border-rose-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-rose-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-rose-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Form Builder</span>}
+
+      <div className={`bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden ${enabled ? 'pointer-events-none' : ''}`}>
+        <div className="bg-slate-900 p-8 text-center border-b-4 border-rose-500">
+          <h2 className="font-serif text-3xl text-white tracking-tight mb-2">{title}</h2>
+          {description && <p className="text-slate-400 text-sm">{description}</p>}
+        </div>
+
+        <div className="p-8 space-y-6">
+          {fields && fields.length > 0 ? (
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              {fields.map((field, i) => {
+                const inputName = safeName(field.label, i);
+                return (
+                  <div key={i} className="flex flex-col gap-2">
+                    <label className="font-bold text-slate-700 text-sm flex gap-1">
+                      {field.label} {field.required && <span className="text-rose-500">*</span>}
+                    </label>
+
+                    {field.type === 'textarea' ? (
+                      <textarea name={inputName} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none resize-none min-h-[100px]" />
+                    ) : field.type === 'select' ? (
+                      <select name={inputName} required={field.required} defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none">
+                        <option value="" disabled>{field.placeholder || 'Select an option'}</option>
+                        {field.options && field.options.split(',').map((opt, optIndex) => (
+                          <option key={optIndex} value={opt.trim()}>{opt.trim()}</option>
+                        ))}
+                      </select>
+                    ) : field.type === 'radio' ? (
+                      <div className="space-y-2 mt-1">
+                        {field.options && field.options.split(',').map((opt, optIndex) => (
+                          <label key={optIndex} className="flex items-center gap-3 cursor-pointer">
+                            <input type="radio" name={inputName} value={opt.trim()} required={field.required && !field.allowOther} className="accent-rose-500 w-4 h-4" />
+                            <span className="text-sm text-slate-700">{opt.trim()}</span>
+                          </label>
+                        ))}
+                        {field.allowOther && (
+                          <label className="flex items-center gap-3 cursor-pointer mt-2">
+                            <input type="radio" name={inputName} value="Other" className="accent-rose-500 w-4 h-4" />
+                            <span className="text-sm text-slate-700">Other:</span>
+                            <input type="text" name={`${inputName}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
+                          </label>
+                        )}
+                      </div>
+                    ) : field.type === 'checkbox' ? (
+                      <div className="space-y-2 mt-1">
+                        {field.options && field.options.split(',').map((opt, optIndex) => (
+                          <label key={optIndex} className="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name={`field_${i}`} value={opt.trim()} className="accent-rose-500 w-4 h-4 rounded" />
+                            <span className="text-sm text-slate-700">{opt.trim()}</span>
+                          </label>
+                        ))}
+                        {field.allowOther && (
+                          <label className="flex items-center gap-3 cursor-pointer mt-2">
+                            <input type="checkbox" name={`field_${i}`} value="Other" className="accent-rose-500 w-4 h-4 rounded" />
+                            <span className="text-sm text-slate-700">Other:</span>
+                            <input type="text" name={`${inputName}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
+                          </label>
+                        )}
+                      </div>
+                    ) : (
+                      <input type={field.type} name={inputName} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none" />
+                    )}
+                  </div>
+                );
+              })}
+              <button type={enabled ? "button" : "submit"} className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-xl mt-4 shadow-md text-lg">
+                {submitText}
+              </button>
+            </form>
+          ) : (
+            <div className="text-center py-8 text-slate-400 italic text-sm">No fields added.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+FormBuilderBlock.craft = {
+  props: {
+    title: "Event Registration",
+    description: "Please fill out your details.",
+    submitText: "Register Now",
+    fields: [
+      { type: 'text', label: 'Full Name', placeholder: 'Jane Doe', required: true, options: '', allowOther: false },
+      { type: 'text', label: 'Email', placeholder: 'jane@email.com', required: true, options: '', allowOther: false },
+      { type: 'radio', label: 'Dietary Restrictions', placeholder: '', required: true, options: 'None, Vegetarian, Vegan', allowOther: true }
+    ]
+  },
   rules: { canDrag: () => true }
 };
 
@@ -1027,6 +1550,7 @@ const EditorSidebar = ({ activeTab }) => {
           <button ref={(ref) => connectors.create(ref, <Element is={BannerBlock} canvas />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-purple-400 font-bold">+ Banner</button>
           <button ref={(ref) => connectors.create(ref, <Element is={GridBlock} canvas />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-sky-400 font-bold">+ Grid</button>
           <button ref={(ref) => connectors.create(ref, <SlideshowBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-orange-400 font-bold">+ Slideshow</button>
+          <button ref={(ref) => connectors.create(ref, <TabsBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-yellow-400 font-bold col-span-2">+ Tabs Container</button>
         </div>
 
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">Content Elements</h3>
@@ -1044,6 +1568,9 @@ const EditorSidebar = ({ activeTab }) => {
           <button ref={(ref) => connectors.create(ref, <GenericMatrixBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-blue-400 font-bold">+ Matrix</button>
 
           <button ref={(ref) => connectors.create(ref, <CommitteeChecklistBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-purple-400 font-bold">+ Committees</button>
+
+          <button ref={(ref) => connectors.create(ref, <FormBuilderBlock />)} className="p-2 bg-slate-800 rounded border border-slate-700 text-xs cursor-grab hover:bg-slate-700 text-rose-400 font-bold">+ Form</button>
+
         </div>
 
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">App Components</h3>
@@ -1087,6 +1614,7 @@ const EditorSidebar = ({ activeTab }) => {
 // 8. FINAL MAIN COMPONENT (With Real-Time Sync)
 // ==========================================
 export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
+  const [registrations, setRegistrations] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1119,11 +1647,18 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
 
   if (loading) return <div className="w-full h-screen bg-white animate-pulse" />;
 
+  const enhancedAppData = {
+    ...appData, // Keep all your existing backend stuff
+    registrations, // Add our new table data
+    setRegistrations // Add the function to update the table
+  };
+
   return (
-    <AppDataContext.Provider value={appData}>
+    <AppDataContext.Provider value={enhancedAppData}>
       <div key={activeTab} className="w-full relative">
         <Editor resolver={{
-          PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, GenericMatrixBlock, CommitteeChecklistBlock
+          PageRoot, SectionContainer, BannerBlock, GridBlock, SlideshowBlock, AdvancedText, CTAButton, MapBlock, VisionBlock, SiteHeaderBlock, HomeWidgetsBlock, ProgramBlock, RegistrationBlock, PlanningCenterBlock, CountdownBlock, GenericMatrixBlock, CommitteeChecklistBlock, FormBuilderBlock,
+          TabsBlock, TabDropZone
         }} enabled={isEditing}>
 
           {isAdmin && (
