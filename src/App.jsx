@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, LayoutDashboard, LogIn, ChevronUp, ChevronDown, Eye, EyeOff, Trash2, GripVertical, Plus } from 'lucide-react';
 import { db } from './firebase';
-import { collection, onSnapshot, doc, updateDoc, query, orderBy, doc, setDoc, onSnapshot, addDoc, updateDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, query, orderBy, setDoc, addDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
 import MapRenderer from './components/MapRenderer';
 import HomeBlockRenderer from './components/HomeBlockRenderer';
 import VisionSection from './components/VisionSection';
