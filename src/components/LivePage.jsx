@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { Editor, Frame, Element, useNode, useEditor } from '@craftjs/core';
 import { db } from '../firebase';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, addDoc, updateDoc, deleteDoc, getDocs, writeBatch, query, orderBy } from 'firebase/firestore';
 
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -295,37 +295,94 @@ const PlanningCenterBlock = () => {
 
   const {
     isPrivateUnlocked, setIsPrivateUnlocked, passInput, setPassInput, internalSubTab, setInternalSubTab,
-    siteContent, catering, logisticsCards, committees, updateField, isOverdue,
-    registrations, setRegistrations
+    siteContent, catering, logisticsCards, committees, updateField, isOverdue
   } = useContext(AppDataContext) || {};
 
-  // --- NEW UI STATE FOR SEARCH AND FILTER ---
+  // --- REGISTRATION & FIREBASE STATE ---
+  const [liveRegistrations, setLiveRegistrations] = React.useState([]);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedFormFilter, setSelectedFormFilter] = React.useState('All');
+  const [editingReg, setEditingReg] = React.useState(null);
+
+  // Fetch live registrations from Firebase
+  React.useEffect(() => {
+    if (enabled) return;
+
+    const unsubscribe = onSnapshot(collection(db, "registrations"), (snapshot) => {
+      const regs = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+      regs.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      setLiveRegistrations(regs);
+    });
+
+    return () => unsubscribe();
+  }, [enabled]);
 
   // Extract unique form names for the dropdown
-  const uniqueForms = ['All', ...new Set((registrations || []).map(r => r.formName))];
+  const uniqueForms = ['All', ...new Set(liveRegistrations.map(r => r.formTitle))];
 
   // Filter the table based on search and selected form
-  const filteredRegistrations = (registrations || []).filter(reg => {
-    const matchesForm = selectedFormFilter === 'All' || reg.formName === selectedFormFilter;
-    const matchesSearch = reg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reg.email.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredRegistrations = liveRegistrations.filter(reg => {
+    const matchesForm = selectedFormFilter === 'All' || reg.formTitle === selectedFormFilter;
+
+    // Search broadly across all dynamic responses
+    const matchesSearch = Object.values(reg.responses || {}).some(val =>
+      String(val).toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return matchesForm && matchesSearch;
   });
 
-  const updateRegistrationStatus = (id, newStatus) => {
-    if (setRegistrations) {
-      setRegistrations(prev => prev.map(reg => reg.id === id ? { ...reg, status: newStatus } : reg));
+  // Get dynamic columns based on the current filtered view
+  const dynamicColumns = filteredRegistrations.length > 0 && filteredRegistrations[0].fieldLabels
+    ? filteredRegistrations[0].fieldLabels
+    : [];
+
+  // Firebase actions
+  const updateRegistrationStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'Confirmed' ? 'Cancelled' : (currentStatus === 'Cancelled' ? 'Pending' : 'Confirmed');
+    await updateDoc(doc(db, "registrations", id), { status: newStatus });
+  };
+
+  const deleteRegistration = async (id) => {
+    if (window.confirm("Are you sure you want to delete this submission?")) {
+      await deleteDoc(doc(db, "registrations", id));
     }
   };
 
-  const deleteRegistration = (id) => {
-    if (window.confirm("Are you sure you want to delete this submission?")) {
-      if (setRegistrations) {
-        setRegistrations(prev => prev.filter(reg => reg.id !== id));
-      }
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingReg) return;
+
+    try {
+      await updateDoc(doc(db, "registrations", editingReg.id), {
+        responses: editingReg.responses
+      });
+      setEditingReg(null); // Close the modal on success
+    } catch (error) {
+      console.error("Error updating document: ", error);
+      alert("Failed to update: " + error.message);
     }
+  };
+
+  const handleExportCSV = () => {
+    if (filteredRegistrations.length === 0) return;
+    const headers = ["Date", "Form", "Status", ...dynamicColumns];
+    const rows = filteredRegistrations.map(r => {
+      const baseInfo = [
+        `"${new Date(r.submittedAt).toLocaleDateString()}"`,
+        `"${r.formTitle}"`,
+        `"${r.status}"`
+      ];
+      const dynamicInfo = dynamicColumns.map(col => `"${r.responses[col] || ''}"`);
+      return [...baseInfo, ...dynamicInfo];
+    });
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${selectedFormFilter === 'All' ? 'All' : selectedFormFilter}_Registrations.csv`;
+    link.click();
   };
 
   const statusColors = {
@@ -496,7 +553,7 @@ const PlanningCenterBlock = () => {
                 </div>
               )}
 
-              {/* NEW REGISTRATION CONTENT WITH SEARCH, FILTER, AND DELETE */}
+              {/* FIREBASE REGISTRATION CONTENT */}
               {internalSubTab === 'registration' && (
                 <div className="animate-in fade-in pt-0 space-y-6">
                   <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden text-left">
@@ -504,7 +561,10 @@ const PlanningCenterBlock = () => {
                       <h3 className="font-serif italic text-white text-lg tracking-tight leading-none">
                         Guest Registrations
                       </h3>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-4">
+                        <button onClick={handleExportCSV} className="text-[9px] font-black uppercase bg-emerald-800 text-white px-3 py-1 rounded shadow-sm hover:bg-emerald-700 transition-colors">
+                          Export CSV
+                        </button>
                         <span className="text-emerald-100 text-[10px] uppercase font-bold tracking-widest">{filteredRegistrations.length} Total</span>
                       </div>
                     </div>
@@ -514,7 +574,7 @@ const PlanningCenterBlock = () => {
                       <div className="flex-1">
                         <input
                           type="text"
-                          placeholder="Search by name or email..."
+                          placeholder="Search any field..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 outline-none"
@@ -537,16 +597,19 @@ const PlanningCenterBlock = () => {
                       <table className="w-full text-sm text-left text-slate-600">
                         <thead className="text-[9px] text-slate-400 uppercase tracking-widest bg-slate-50/50 border-b border-slate-100">
                           <tr>
-                            <th className="px-6 py-4 font-black">Name / Email</th>
+                            {/* MOVED TO THE FRONT */}
+                            <th className="px-6 py-4 font-black">Status / Actions</th>
+                            <th className="px-6 py-4 font-black">Date</th>
                             <th className="px-6 py-4 font-black">Form Source</th>
-                            <th className="px-6 py-4 font-black">Date & Time</th>
-                            <th className="px-6 py-4 font-black text-right">Status</th>
+                            {dynamicColumns.map((col, idx) => (
+                              <th key={idx} className="px-6 py-4 font-black whitespace-nowrap">{col}</th>
+                            ))}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {filteredRegistrations.length === 0 ? (
                             <tr>
-                              <td colSpan="4" className="px-6 py-12 text-center text-slate-400">
+                              <td colSpan={dynamicColumns.length + 3} className="px-6 py-12 text-center text-slate-400">
                                 <p className="italic mb-1">No registrations found.</p>
                                 {searchQuery && <p className="text-xs">Try clearing your search or filter.</p>}
                               </td>
@@ -554,27 +617,32 @@ const PlanningCenterBlock = () => {
                           ) : (
                             filteredRegistrations.map((reg) => (
                               <tr key={reg.id} className="hover:bg-slate-50/50 transition-colors group">
+
+                                {/* MOVED TO THE FRONT & ADDED EDIT BUTTON */}
                                 <td className="px-6 py-4">
-                                  <div className="font-bold text-slate-800">{reg.name}</div>
-                                  <div className="text-xs text-slate-400">{reg.email} • Diet: {reg.diet}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">{reg.formName}</span>
-                                </td>
-                                <td className="px-6 py-4 text-slate-400 text-xs">
-                                  {reg.date}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <div className="flex items-center justify-end gap-3">
+                                  <div className="flex items-center gap-3">
                                     <select
                                       value={reg.status}
                                       onChange={(e) => updateRegistrationStatus(reg.id, e.target.value)}
-                                      className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border outline-none cursor-pointer ${statusColors[reg.status]}`}
+                                      className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border outline-none cursor-pointer ${statusColors[reg.status] || 'bg-slate-100'}`}
                                     >
                                       <option value="Pending">Pending</option>
                                       <option value="Confirmed">Confirmed</option>
                                       <option value="Cancelled">Cancelled</option>
                                     </select>
+
+                                    {/* NEW EDIT BUTTON */}
+                                    <button
+                                      onClick={() => setEditingReg(reg)} /* <--- CHANGE THIS LINE */
+                                      className="text-slate-300 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100"
+                                      title="Edit Submission"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                      </svg>
+                                    </button>
+
+                                    {/* EXISTING DELETE BUTTON */}
                                     <button
                                       onClick={() => deleteRegistration(reg.id)}
                                       className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
@@ -586,6 +654,24 @@ const PlanningCenterBlock = () => {
                                     </button>
                                   </div>
                                 </td>
+
+                                {/* ORIGINAL DATA COLUMNS */}
+                                <td className="px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap">
+                                  {new Date(reg.submittedAt).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
+                                    {reg.formTitle}
+                                  </span>
+                                </td>
+
+                                {/* Dynamic Data Mapping */}
+                                {dynamicColumns.map((col, idx) => (
+                                  <td key={idx} className="px-6 py-4 text-xs font-medium text-slate-800">
+                                    {reg.responses[col] || '—'}
+                                  </td>
+                                ))}
+
                               </tr>
                             ))
                           )}
@@ -601,6 +687,62 @@ const PlanningCenterBlock = () => {
         </div>
 
       </div>
+      {/* EDIT REGISTRATION MODAL */}
+      {editingReg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
+
+            <div className="bg-emerald-900 p-4 flex justify-between items-center">
+              <div>
+                <h3 className="font-serif italic text-white text-lg leading-tight">Edit Registration</h3>
+                <p className="text-emerald-200 text-[10px] uppercase tracking-widest font-bold">{editingReg.formTitle}</p>
+              </div>
+              <button onClick={() => setEditingReg(null)} className="text-emerald-300 hover:text-white transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto no-scrollbar">
+              {editingReg.fieldLabels && editingReg.fieldLabels.map((label, idx) => (
+                <div key={idx} className="space-y-1 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
+                  <input
+                    type="text"
+                    value={editingReg.responses[label] || ''}
+                    onChange={(e) => {
+                      setEditingReg({
+                        ...editingReg,
+                        responses: {
+                          ...editingReg.responses,
+                          [label]: e.target.value
+                        }
+                      });
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 font-medium focus:border-emerald-500 focus:bg-white outline-none transition-all"
+                  />
+                </div>
+              ))}
+
+              <div className="flex gap-3 pt-6 border-t border-slate-100 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditingReg(null)}
+                  className="flex-1 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 text-xs font-black uppercase tracking-widest text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-md transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -971,82 +1113,137 @@ CommitteeChecklistBlock.craft = {
 
 // 14. CREATE THE FORM BUILDER SETTINGS & BLOCK
 const FormBuilderSettings = () => {
-  const { title, description, submitText, fields, actions: { setProp } } = useNode((node) => ({
+  const { setProp, title, description, submitText, fields } = useNode((node) => ({
     title: node.data.props.title,
     description: node.data.props.description,
     submitText: node.data.props.submitText,
-    fields: node.data.props.fields || []
+    fields: node.data.props.fields,
   }));
 
-  const addField = () => setProp(p => p.fields.push({ type: 'text', label: 'New Field', placeholder: '', required: false, options: '', allowOther: false }));
-  const removeField = (index) => setProp(p => p.fields.splice(index, 1));
-  const updateField = (index, key, val) => setProp(p => p.fields[index][key] = val);
-  const moveField = (index, dir) => setProp(p => {
-    if ((dir === -1 && index === 0) || (dir === 1 && index === p.fields.length - 1)) return;
-    const target = index + dir;
-    [p.fields[index], p.fields[target]] = [p.fields[target], p.fields[index]];
-  });
+  const updateField = (index, key, value) => {
+    setProp((props) => {
+      props.fields[index][key] = value;
+    });
+  };
+
+  const addField = () => {
+    setProp((props) => {
+      props.fields.push({
+        type: 'text',
+        label: 'New Question',
+        placeholder: '',
+        required: false,
+        options: '',
+        allowOther: false
+      });
+    });
+  };
+
+  const removeField = (index) => {
+    setProp((props) => {
+      props.fields.splice(index, 1);
+    });
+  };
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      {/* Header Info */}
-      <div className="space-y-3">
-        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Form Details</label>
-        <input type="text" value={title} onChange={(e) => setProp(p => p.title = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-xs focus:border-rose-500 outline-none" placeholder="Form Title" />
-        <textarea value={description} onChange={(e) => setProp(p => p.description = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-xs focus:border-rose-500 outline-none resize-none min-h-[60px]" placeholder="Form Description" />
-        <input type="text" value={submitText} onChange={(e) => setProp(p => p.submitText = e.target.value)} className="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-xs focus:border-rose-500 outline-none" placeholder="Submit Button Text" />
+    <div className="space-y-4 p-4">
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-slate-400">Form Title</label>
+        <input
+          type="text"
+          value={title || ''}
+          onChange={(e) => setProp(props => props.title = e.target.value)}
+          className="w-full p-2 bg-slate-800 rounded text-xs text-white border border-slate-700"
+        />
       </div>
 
-      {/* Fields */}
-      <div>
-        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Form Fields</label>
-        <div className="space-y-3">
-          {fields.map((field, i) => (
-            <div key={i} className="p-3 bg-slate-800 border border-slate-700 rounded-lg relative space-y-2">
-              <div className="absolute -top-3 -right-2 flex gap-1 bg-slate-900 border border-slate-700 rounded-lg overflow-hidden z-10 shadow-lg">
-                <button onClick={() => moveField(i, -1)} disabled={i === 0} className="px-2 py-1 text-slate-300 hover:bg-slate-700 disabled:opacity-30 text-[10px]">▲</button>
-                <button onClick={() => moveField(i, 1)} disabled={i === fields.length - 1} className="px-2 py-1 text-slate-300 hover:bg-slate-700 disabled:opacity-30 text-[10px]">▼</button>
-                <button onClick={() => removeField(i)} className="px-2 py-1 text-red-400 hover:bg-red-500 hover:text-white text-[10px]">✕</button>
-              </div>
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-slate-400">Description</label>
+        <input
+          type="text"
+          value={description || ''}
+          onChange={(e) => setProp(props => props.description = e.target.value)}
+          className="w-full p-2 bg-slate-800 rounded text-xs text-white border border-slate-700"
+        />
+      </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                <input type="text" value={field.label} onChange={(e) => updateField(i, 'label', e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-1.5 text-xs focus:border-rose-500 outline-none" placeholder="Field Label" />
-                <select value={field.type} onChange={(e) => updateField(i, 'type', e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-1.5 text-xs focus:border-rose-500 outline-none">
-                  <option value="text">Short Text</option>
-                  <option value="email">Email</option>
-                  <option value="textarea">Long Text</option>
-                  <option value="select">Dropdown</option>
-                  <option value="radio">Multiple Choice</option>
-                  <option value="checkbox">Checkboxes</option>
-                </select>
-              </div>
+      <hr className="border-slate-700 my-4" />
+      <h3 className="text-xs font-black text-white uppercase tracking-widest mb-2">Form Fields</h3>
 
-              {['text', 'email', 'textarea'].includes(field.type) && (
-                <input type="text" value={field.placeholder || ''} onChange={(e) => updateField(i, 'placeholder', e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-1.5 text-xs focus:border-rose-500 outline-none" placeholder="Placeholder text..." />
-              )}
+      <div className="space-y-4 max-h-64 overflow-y-auto pr-2 no-scrollbar">
+        {fields?.map((field, index) => (
+          <div key={index} className="p-3 bg-slate-800 border border-slate-700 rounded-lg space-y-2 relative group">
+            <button
+              onClick={() => removeField(index)}
+              className="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold"
+            >
+              ✕
+            </button>
 
-              {['select', 'radio', 'checkbox'].includes(field.type) && (
-                <input type="text" value={field.options || ''} onChange={(e) => updateField(i, 'options', e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded p-1.5 text-xs focus:border-rose-500 outline-none" placeholder="Options (comma separated)" />
-              )}
+            <input
+              type="text"
+              placeholder="Question Label"
+              value={field.label}
+              onChange={(e) => updateField(index, 'label', e.target.value)}
+              className="w-full bg-transparent text-sm text-white font-bold outline-none border-b border-slate-600 pb-1"
+            />
 
-              <div className="flex items-center justify-between mt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={field.required} onChange={(e) => updateField(i, 'required', e.target.checked)} className="accent-rose-500 rounded" />
-                  <span className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Required</span>
+            <div className="flex gap-2">
+              <select
+                value={field.type}
+                onChange={(e) => updateField(index, 'type', e.target.value)}
+                className="flex-1 bg-slate-900 text-xs text-slate-300 p-1.5 rounded border border-slate-700 outline-none cursor-pointer"
+              >
+                <option value="text">Short Text</option>
+                <option value="paragraph">Long Text</option>
+                <option value="dropdown">Dropdown</option>
+                <option value="radio">Multiple Choice</option>
+                <option value="checkbox">Checkboxes</option>
+              </select>
+
+              <label className="flex items-center gap-1 text-[10px] text-slate-400 uppercase font-bold cursor-pointer hover:text-white transition-colors">
+                <input
+                  type="checkbox"
+                  checked={field.required}
+                  onChange={(e) => updateField(index, 'required', e.target.checked)}
+                  className="cursor-pointer"
+                />
+                Req
+              </label>
+
+              {/* NEW "+ OTHER" TOGGLE FOR RADIO AND CHECKBOXES */}
+              {(field.type === 'radio' || field.type === 'checkbox') && (
+                <label className="flex items-center gap-1 text-[10px] text-slate-400 uppercase font-bold cursor-pointer hover:text-white transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={field.allowOther || false}
+                    onChange={(e) => updateField(index, 'allowOther', e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  + Other
                 </label>
-
-                {['radio', 'checkbox'].includes(field.type) && (
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={field.allowOther || false} onChange={(e) => updateField(i, 'allowOther', e.target.checked)} className="accent-rose-500 rounded" />
-                    <span className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Add "Other"</span>
-                  </label>
-                )}
-              </div>
+              )}
             </div>
-          ))}
-        </div>
-        <button onClick={addField} className="w-full py-2 bg-rose-900/40 text-rose-400 hover:bg-rose-900/60 border border-rose-900/50 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all mt-3">+ Add Field</button>
+
+            {(field.type === 'radio' || field.type === 'dropdown' || field.type === 'checkbox') && (
+              <input
+                type="text"
+                placeholder="Options (comma separated)"
+                value={field.options || ''}
+                onChange={(e) => updateField(index, 'options', e.target.value)}
+                className="w-full bg-slate-900 p-1.5 rounded text-[10px] text-emerald-400 outline-none border border-slate-700"
+              />
+            )}
+          </div>
+        ))}
       </div>
+
+      <button
+        onClick={addField}
+        className="w-full py-2 border border-dashed border-slate-600 rounded text-xs font-bold text-slate-400 hover:text-white hover:border-slate-400 transition-colors mt-2"
+      >
+        + Add Question
+      </button>
     </div>
   );
 };
@@ -1056,35 +1253,47 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
   const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
   const { setRegistrations } = useContext(AppDataContext) || {};
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (enabled) return;
 
     const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
+    const rawData = Object.fromEntries(formData.entries());
+
+    const responses = {};
+    const fieldLabels = [];
 
     fields.forEach((field, i) => {
+      fieldLabels.push(field.label);
+
+      // Intelligently find the input value regardless of how it's named in the HTML
+      let value = rawData[field.label] || rawData[`field_${i}`] || "N/A";
+
       if (field.type === 'checkbox') {
-        data[field.label] = formData.getAll(`field_${i}`);
+        const checks = formData.getAll(field.label).length ? formData.getAll(field.label) : formData.getAll(`field_${i}`);
+        value = checks.join(', ') || "N/A";
+      } else if (field.type === 'radio' && value === 'Other') {
+        value = `Other: ${rawData[`${field.label}_other`] || rawData[`field_${i}_other`] || ''}`;
       }
+
+      responses[field.label] = value;
     });
 
-    const findKey = (str) => Object.keys(data).find(k => k.toLowerCase().includes(str));
-
     const newRegistration = {
-      id: Date.now(),
-      formName: title || "Untitled Form", // Connects the submission to this specific form
-      name: data[findKey('name')] || Object.values(data)[0] || "Guest",
-      email: data[findKey('email')] || "N/A",
-      diet: data[findKey('diet')] || "None",
+      formTitle: title || "Untitled Form",
+      submittedAt: new Date().toISOString(),
       status: "Pending",
-      date: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) // Exact time
+      fieldLabels: fieldLabels,
+      responses: responses
     };
 
-    if (setRegistrations) {
-      setRegistrations(prev => [...prev, newRegistration]);
+    try {
+      await addDoc(collection(db, "registrations"), newRegistration);
       alert("Registration captured! Check the Planning Center.");
       e.target.reset();
+    } catch (error) {
+      console.error("Firebase Error:", error);
+      alert(`Submission failed: ${error.message}`);
     }
   };
 
@@ -1104,17 +1313,16 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
           {fields && fields.length > 0 ? (
             <form className="space-y-6" onSubmit={handleSubmit}>
               {fields.map((field, i) => {
-                const inputName = safeName(field.label, i);
                 return (
                   <div key={i} className="flex flex-col gap-2">
                     <label className="font-bold text-slate-700 text-sm flex gap-1">
                       {field.label} {field.required && <span className="text-rose-500">*</span>}
                     </label>
 
-                    {field.type === 'textarea' ? (
-                      <textarea name={inputName} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none resize-none min-h-[100px]" />
-                    ) : field.type === 'select' ? (
-                      <select name={inputName} required={field.required} defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none">
+                    {field.type === 'textarea' || field.type === 'paragraph' ? (
+                      <textarea name={field.label} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none resize-none min-h-[100px]" />
+                    ) : field.type === 'select' || field.type === 'dropdown' ? (
+                      <select name={field.label} required={field.required} defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none">
                         <option value="" disabled>{field.placeholder || 'Select an option'}</option>
                         {field.options && field.options.split(',').map((opt, optIndex) => (
                           <option key={optIndex} value={opt.trim()}>{opt.trim()}</option>
@@ -1124,15 +1332,15 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
                       <div className="space-y-2 mt-1">
                         {field.options && field.options.split(',').map((opt, optIndex) => (
                           <label key={optIndex} className="flex items-center gap-3 cursor-pointer">
-                            <input type="radio" name={inputName} value={opt.trim()} required={field.required && !field.allowOther} className="accent-rose-500 w-4 h-4" />
+                            <input type="radio" name={field.label} value={opt.trim()} required={field.required && !field.allowOther} className="accent-rose-500 w-4 h-4" />
                             <span className="text-sm text-slate-700">{opt.trim()}</span>
                           </label>
                         ))}
                         {field.allowOther && (
                           <label className="flex items-center gap-3 cursor-pointer mt-2">
-                            <input type="radio" name={inputName} value="Other" className="accent-rose-500 w-4 h-4" />
+                            <input type="radio" name={field.label} value="Other" className="accent-rose-500 w-4 h-4" />
                             <span className="text-sm text-slate-700">Other:</span>
-                            <input type="text" name={`${inputName}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
+                            <input type="text" name={`${field.label}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
                           </label>
                         )}
                       </div>
@@ -1140,20 +1348,20 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
                       <div className="space-y-2 mt-1">
                         {field.options && field.options.split(',').map((opt, optIndex) => (
                           <label key={optIndex} className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name={`field_${i}`} value={opt.trim()} className="accent-rose-500 w-4 h-4 rounded" />
+                            <input type="checkbox" name={field.label} value={opt.trim()} className="accent-rose-500 w-4 h-4 rounded" />
                             <span className="text-sm text-slate-700">{opt.trim()}</span>
                           </label>
                         ))}
                         {field.allowOther && (
                           <label className="flex items-center gap-3 cursor-pointer mt-2">
-                            <input type="checkbox" name={`field_${i}`} value="Other" className="accent-rose-500 w-4 h-4 rounded" />
+                            <input type="checkbox" name={field.label} value="Other" className="accent-rose-500 w-4 h-4 rounded" />
                             <span className="text-sm text-slate-700">Other:</span>
-                            <input type="text" name={`${inputName}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
+                            <input type="text" name={`${field.label}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
                           </label>
                         )}
                       </div>
                     ) : (
-                      <input type={field.type} name={inputName} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none" />
+                      <input type={field.type} name={field.label} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none" />
                     )}
                   </div>
                 );
@@ -1182,9 +1390,11 @@ FormBuilderBlock.craft = {
       { type: 'radio', label: 'Dietary Restrictions', placeholder: '', required: true, options: 'None, Vegetarian, Vegan', allowOther: true }
     ]
   },
+  related: {
+    settings: FormBuilderSettings
+  }, // <--- THIS COMMA WAS MISSING
   rules: { canDrag: () => true }
 };
-
 
 // ==========================================
 // 0. PAGE ROOT (The truly invisible canvas)
