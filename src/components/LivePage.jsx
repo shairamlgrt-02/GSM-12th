@@ -132,26 +132,26 @@ const ProgramBlock = () => {
           <div className="divide-y divide-slate-50">
             {program && program.filter(item => item.parentId === activeEventSubTab).map(row => (
               <div key={row.id}>
-                <div onClick={() => setActiveProgramId && setActiveProgramId(activeProgramId === row.id ? null : row.id)} className="flex items-center p-4 cursor-pointer hover:bg-slate-50 transition-all">
-                  <div className="w-16 md:w-24 font-bold text-[10px] text-emerald-800 uppercase tracking-tighter shrink-0">{row.time}</div>
+                <div onClick={() => setActiveProgramId && setActiveProgramId(activeProgramId === row.id ? null : row.id)} className="flex items-center p-3 md:p-4 cursor-pointer hover:bg-slate-50 transition-all">
+                  <div className="w-14 md:w-24 font-bold text-[9px] md:text-[10px] text-emerald-800 uppercase tracking-tighter shrink-0">{row.time}</div>
                   <div className="flex-1">
-                    <div className="font-bold text-[11px] md:text-sm text-slate-700 leading-tight tracking-tight">{row.activity}</div>
-                    {row.remarks && <div className="text-[9px] text-emerald-600 italic font-semibold">— {row.remarks}</div>}
+                    <div className="font-bold text-[10px] md:text-sm text-slate-700 leading-tight tracking-tight">{row.activity}</div>
+                    {row.remarks && <div className="text-[8px] md:text-[9px] text-emerald-600 italic font-semibold mt-0.5 md:mt-0">— {row.remarks}</div>}
                   </div>
                 </div>
                 {activeProgramId === row.id && row.description && (
-                  <div className="px-4 pb-4 bg-slate-50/50 text-[10px] text-slate-500 pl-20 md:pl-28 animate-in fade-in leading-relaxed font-medium">{row.description}</div>
+                  <div className="px-3 md:px-4 pb-3 md:pb-4 bg-slate-50/50 text-[9px] md:text-[10px] text-slate-500 pl-16 md:pl-28 animate-in fade-in leading-relaxed font-medium">{row.description}</div>
                 )}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {logisticsCards && logisticsCards.filter(c => c.parentId === activeEventSubTab).map(card => (
-            <div key={card.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-[4px] border-[#C5A021] shadow-sm">
-              <h4 className="font-bold text-emerald-900 uppercase text-[9px] mb-2 tracking-widest italic opacity-40">{card.title}</h4>
-              <p className="text-[11px] text-gray-600 leading-relaxed font-medium whitespace-pre-line tracking-tight">{card.desc}</p>
+            <div key={card.id} className="bg-white p-3.5 md:p-5 rounded-lg md:rounded-xl border border-slate-100 border-t-[4px] border-[#C5A021] shadow-sm">
+              <h4 className="font-bold text-emerald-900 uppercase text-[8px] md:text-[9px] mb-1 md:mb-2 tracking-widest italic opacity-40">{card.title}</h4>
+              <p className="text-[10px] md:text-[11px] text-gray-600 leading-relaxed font-medium whitespace-pre-line tracking-tight">{card.desc}</p>
             </div>
           ))}
         </div>
@@ -260,14 +260,13 @@ const TabsBlock = ({ tabs }) => {
       <div className={`bg-transparent overflow-hidden ${enabled ? 'pointer-events-none' : ''}`}>
 
         {/* TAB NAVIGATION HEADER - Matched exact reference snippet */}
-        <div className="flex justify-center mb-10 w-full">
-          {/* Using your exact reference container classes here: */}
-          <div className="flex bg-emerald-900/5 p-1 rounded-xl gap-1 shadow-inner w-full max-w-2xl mx-auto overflow-x-auto no-scrollbar">
+        <div className="flex justify-center mb-6 md:mb-10 w-full">
+          <div className="flex bg-emerald-900/5 p-0.5 md:p-1 rounded-lg md:rounded-xl gap-0.5 md:gap-1 shadow-inner w-full max-w-2xl mx-auto overflow-x-auto no-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTabId(tab.id)}
-                className={`flex-1 px-5 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${currentActiveTab === tab.id
+                className={`flex-1 px-3 py-1.5 md:px-5 md:py-2 rounded-md md:rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${currentActiveTab === tab.id
                   ? 'bg-emerald-900 text-white shadow-sm'
                   : 'text-emerald-900/30 hover:text-emerald-900/80 hover:bg-emerald-900/5'
                   }`}
@@ -416,19 +415,22 @@ const PlanningCenterBlock = () => {
         <div className="max-w-5xl mx-auto py-10 px-4 animate-in fade-in duration-700">
           {!isPrivateUnlocked ? (
             /* PRIVATE LOGIN GATE */
-            <div className="max-w-md mx-auto mt-10">
-              <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-emerald-900/5 text-center">
-                <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8">
-                  <svg className="w-10 h-10 text-emerald-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="max-w-md mx-auto mt-6 md:mt-10 px-4 md:px-0">
+              <div className="bg-white p-6 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-emerald-900/5 text-center">
+
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8">
+                  <svg className="w-8 h-8 md:w-10 md:h-10 text-emerald-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002-2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
-                <h2 className="font-serif italic text-2xl text-emerald-900 mb-2">Planning Center</h2>
-                <p className="text-slate-400 text-[10px] uppercase tracking-[0.2em] mb-10">Secure Committee & Logistics Portal</p>
-                <div className="space-y-4">
+
+                <h2 className="font-serif italic text-xl md:text-2xl text-emerald-900 mb-1 md:mb-2">Planning Center</h2>
+                <p className="text-slate-400 text-[8px] md:text-[10px] uppercase tracking-[0.2em] mb-6 md:mb-10">Secure Committee & Logistics Portal</p>
+
+                <div className="space-y-3 md:space-y-4">
                   <input
                     type="password"
-                    className="w-full bg-slate-50 border border-transparent focus:border-emerald-100 rounded-2xl px-6 py-4 text-center text-emerald-900 tracking-[0.3em] outline-none transition-all"
+                    className="w-full bg-slate-50 border border-transparent focus:border-emerald-100 rounded-xl md:rounded-2xl px-4 py-3 md:px-6 md:py-4 text-center text-xs md:text-base text-emerald-900 tracking-[0.3em] outline-none transition-all"
                     placeholder="••••••••"
                     value={passInput || ''}
                     onChange={(e) => setPassInput && setPassInput(e.target.value)}
@@ -444,7 +446,7 @@ const PlanningCenterBlock = () => {
                       if (passInput === 'GSM2026') { setIsPrivateUnlocked && setIsPrivateUnlocked(true); }
                       else { alert("Invalid Access Code"); setPassInput && setPassInput(''); }
                     }}
-                    className="w-full bg-emerald-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-900/20 hover:bg-emerald-800 transition-all active:scale-95"
+                    className="w-full bg-emerald-900 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] shadow-lg shadow-emerald-900/20 hover:bg-emerald-800 transition-all active:scale-95"
                   >
                     Verify Access
                   </button>
@@ -532,32 +534,31 @@ const PlanningCenterBlock = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
                     {committees.map((comm) => (
-                      <div key={comm.id} className="bg-white p-5 rounded-xl border border-slate-100 border-t-4 border-emerald-900 shadow-sm group hover:shadow-md transition-all duration-500">
-                        <h3 className="font-bold text-emerald-900 text-xs uppercase tracking-tighter mb-4">{comm.title}</h3>
+                      <div key={comm.id} className="bg-white p-4 md:p-5 rounded-lg md:rounded-xl border border-slate-100 border-t-4 border-emerald-900 shadow-sm group hover:shadow-md transition-all duration-500">
+                        <h3 className="font-bold text-emerald-900 text-[10px] md:text-xs uppercase tracking-tighter mb-3 md:mb-4">{comm.title}</h3>
                         <div className="space-y-2">
                           {comm.tasks?.map((t, i) => {
                             const overdue = !t.completed && isOverdue && isOverdue(t.dueDate);
                             return (
-                              <div key={i} className={`p-3 rounded-lg border border-slate-50 transition-all duration-500 ${t.completed ? 'bg-slate-50 opacity-40 grayscale' : 'bg-white shadow-sm'}`}>
-                                <label className="flex items-start gap-3 cursor-pointer">
+                              <div key={i} className={`p-2.5 md:p-3 rounded-lg border border-slate-50 transition-all duration-500 ${t.completed ? 'bg-slate-50 opacity-40 grayscale' : 'bg-white shadow-sm'}`}>
+                                <label className="flex items-start gap-2.5 md:gap-3 cursor-pointer">
                                   <input
                                     type="checkbox"
-                                    className="mt-0.5 accent-emerald-600 w-3.5 h-3.5 rounded"
+                                    className="mt-0.5 accent-emerald-600 w-3 h-3 md:w-3.5 md:h-3.5 rounded"
                                     checked={t.completed || false}
-                                    onChange={async () => {
-                                      if (updateField) {
-                                        const nt = [...comm.tasks];
-                                        nt[i].completed = !nt[i].completed;
-                                        await updateField('committees', comm.id, { tasks: nt });
-                                      }
+                                    onChange={(e) => {
+                                      const updatedTasks = [...comm.tasks];
+                                      updatedTasks[i].completed = e.target.checked;
+                                      updateField('committees', comm.id, { tasks: updatedTasks });
                                     }}
                                   />
-                                  <div className="flex-1 min-w-0">
-                                    <span className={`text-[10px] md:text-[11px] block font-bold tracking-tight ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{t.text}</span>
-                                    <div className="flex gap-2 mt-1 opacity-60">
-                                      {t.dueDate && <span className={`text-[7px] font-black uppercase px-1 rounded ${overdue ? 'bg-red-50 text-red-600' : 'bg-slate-100'}`}>Due: {t.dueDate}</span>}
-                                      {t.assignee && <span className="text-[7px] font-black uppercase bg-emerald-50 text-emerald-800 px-1 rounded">@{t.assignee}</span>}
-                                    </div>
+                                  <div className="flex-1">
+                                    <div className={`text-xs md:text-sm font-bold ${t.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{t.text}</div>
+                                    {t.dueDate && (
+                                      <div className={`text-[9px] md:text-[10px] font-bold mt-1 ${t.completed ? 'text-slate-400' : overdue ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                        DUE: {new Date(t.dueDate).toLocaleDateString()} {overdue && '(OVERDUE)'}
+                                      </div>
+                                    )}
                                   </div>
                                 </label>
                               </div>
@@ -703,64 +704,66 @@ const PlanningCenterBlock = () => {
           )}
         </div>
 
-      </div>
+      </div >
       {/* EDIT REGISTRATION MODAL */}
-      {editingReg && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
+      {
+        editingReg && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
 
-            <div className="bg-emerald-900 p-4 flex justify-between items-center">
-              <div>
-                <h3 className="font-serif italic text-white text-lg leading-tight">Edit Registration</h3>
-                <p className="text-emerald-200 text-[10px] uppercase tracking-widest font-bold">{editingReg.formTitle}</p>
-              </div>
-              <button onClick={() => setEditingReg(null)} className="text-emerald-300 hover:text-white transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto no-scrollbar">
-              {editingReg.fieldLabels && editingReg.fieldLabels.map((label, idx) => (
-                <div key={idx} className="space-y-1 text-left">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
-                  <input
-                    type="text"
-                    value={editingReg.responses[label] || ''}
-                    onChange={(e) => {
-                      setEditingReg({
-                        ...editingReg,
-                        responses: {
-                          ...editingReg.responses,
-                          [label]: e.target.value
-                        }
-                      });
-                    }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 font-medium focus:border-emerald-500 focus:bg-white outline-none transition-all"
-                  />
+              <div className="bg-emerald-900 p-4 flex justify-between items-center">
+                <div>
+                  <h3 className="font-serif italic text-white text-lg leading-tight">Edit Registration</h3>
+                  <p className="text-emerald-200 text-[10px] uppercase tracking-widest font-bold">{editingReg.formTitle}</p>
                 </div>
-              ))}
-
-              <div className="flex gap-3 pt-6 border-t border-slate-100 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setEditingReg(null)}
-                  className="flex-1 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-3 text-xs font-black uppercase tracking-widest text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-md transition-colors"
-                >
-                  Save Changes
+                <button onClick={() => setEditingReg(null)} className="text-emerald-300 hover:text-white transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
-            </form>
 
+              <form onSubmit={handleSaveEdit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto no-scrollbar">
+                {editingReg.fieldLabels && editingReg.fieldLabels.map((label, idx) => (
+                  <div key={idx} className="space-y-1 text-left">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
+                    <input
+                      type="text"
+                      value={editingReg.responses[label] || ''}
+                      onChange={(e) => {
+                        setEditingReg({
+                          ...editingReg,
+                          responses: {
+                            ...editingReg.responses,
+                            [label]: e.target.value
+                          }
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 font-medium focus:border-emerald-500 focus:bg-white outline-none transition-all"
+                    />
+                  </div>
+                ))}
+
+                <div className="flex gap-3 pt-6 border-t border-slate-100 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setEditingReg(null)}
+                    className="flex-1 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 text-xs font-black uppercase tracking-widest text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-md transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 PlanningCenterBlock.craft = { rules: { canDrag: () => true } };
@@ -1354,7 +1357,7 @@ const FormBuilderBlock = ({ title, description, submitText, fields, headerColor,
 
     try {
       await addDoc(collection(db, "registrations"), newRegistration);
-      alert("Registration captured! Check the Planning Center.");
+      alert("Registration Submitted!");
       e.target.reset();
     } catch (error) {
       console.error("Firebase Error:", error);
@@ -1696,6 +1699,7 @@ const BannerSettings = () => {
     </div>
   );
 };
+
 const BannerBlock = ({ bgType, bgImage, bgColor, overlayOpacity, aspect, rounding, children }) => {
   const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
   const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
@@ -1707,15 +1711,23 @@ const BannerBlock = ({ bgType, bgImage, bgColor, overlayOpacity, aspect, roundin
   return (
     <div ref={(ref) => enabled ? connect(drag(ref)) : null}
       className={`relative w-full flex items-center justify-center overflow-hidden transition-all ${rounding} ${enabled ? 'shadow-xl border-2 border-dashed border-purple-300' : ''} ${selected && enabled ? 'ring-4 ring-purple-500 z-10' : ''}`}
-      style={{ aspectRatio: aspect, minHeight: aspect === 'auto' ? '250px' : 'auto', ...backgroundStyle }}
+      style={{ 
+        aspectRatio: aspect, 
+        minHeight: aspect === 'auto' ? '250px' : '200px', 
+        ...backgroundStyle 
+      }}
     >
       {enabled && <span className="absolute top-0 left-0 bg-purple-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Banner</span>}
       <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }}></div>
-      <div className="relative z-10 w-full max-w-4xl mx-auto p-8 flex flex-col items-center text-center gap-4">{children}</div>
+      <div className="relative z-10 w-full max-w-4xl mx-auto p-4 md:p-8 flex flex-col items-center text-center gap-2 md:gap-4">{children}</div>
     </div>
   );
 };
-BannerBlock.craft = { props: { bgType: "image", bgImage: "https://images.unsplash.com/photo-1438259183166-4df4f3f0194b?q=80&w=2000", bgColor: "#1e293b", overlayOpacity: 0.4, aspect: "16 / 9", rounding: "rounded-none" }, related: { settings: BannerSettings } };
+
+BannerBlock.craft = { 
+  props: { bgType: "image", bgImage: "https://images.unsplash.com/photo-1438259183166-4df4f3f0194b?q=80&w=2000", bgColor: "#1e293b", overlayOpacity: 0.4, aspect: "16 / 9", rounding: "rounded-none" }, 
+  related: { settings: BannerSettings } 
+};
 
 // ==========================================
 // 6. SLIDESHOW BLOCK

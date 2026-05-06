@@ -75,7 +75,7 @@ const ResizableSection = ({ bgColor, padding, layoutDirection, justify, align, c
 ResizableSection.craft = { props: { bgColor: "#ffffff", padding: 2, layoutDirection: "column", justify: "flex-start", align: "flex-start" }, related: { settings: ResizableSettings } };
 
 // ==========================================
-// 2. SIDEBAR PANELS (Fully Responsive Now)
+// 2. SIDEBAR PANELS (Hidden when not editing)
 // ==========================================
 const EditorSidebar = () => {
   const { connectors, query, actions, selected } = useEditor((state) => {
@@ -93,31 +93,30 @@ const EditorSidebar = () => {
   };
 
   return (
-    // REMOVED 'fixed w-80 h-screen'. It now fills whatever container it is placed in (h-full w-full).
-    <div className="w-full h-full bg-slate-900 text-white flex flex-col z-50 overflow-y-auto">
-      <div className="p-4 md:p-6 border-b border-slate-700 bg-slate-800 flex justify-between items-center sticky top-0 z-10">
-        <span className="font-bold tracking-wider text-xs md:text-sm uppercase">Site Editor</span>
-        <button onClick={handleSave} className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-[10px] md:text-xs font-bold px-4 py-2 rounded-full transition">Publish</button>
+    <div className="w-80 h-screen bg-slate-900 text-white fixed top-0 right-0 shadow-2xl flex flex-col z-50 overflow-y-auto">
+      <div className="p-6 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
+        <span className="font-bold tracking-wider text-sm uppercase">Site Editor</span>
+        <button onClick={handleSave} className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-xs font-bold px-4 py-2 rounded-full transition">Publish</button>
       </div>
 
-      <div className="p-4 md:p-6 border-b border-slate-700">
+      <div className="p-6 border-b border-slate-700">
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">Add Elements</h3>
         <div className="flex flex-col gap-2">
-          <button ref={(ref) => connectors.create(ref, <ChurchHeader text="New Title" />)} className="p-3 bg-slate-800 rounded border border-slate-700 text-left text-xs md:text-sm cursor-grab hover:bg-slate-700 transition">+ Header Text</button>
-          <button ref={(ref) => connectors.create(ref, <Element is={ResizableSection} canvas />)} className="p-3 bg-slate-800 rounded border border-slate-700 text-left text-xs md:text-sm cursor-grab hover:bg-slate-700 transition">+ Flex Section</button>
+          <button ref={(ref) => connectors.create(ref, <ChurchHeader text="New Title" />)} className="p-3 bg-slate-800 rounded border border-slate-700 text-left text-sm cursor-grab hover:bg-slate-700">+ Header Text</button>
+          <button ref={(ref) => connectors.create(ref, <Element is={ResizableSection} canvas />)} className="p-3 bg-slate-800 rounded border border-slate-700 text-left text-sm cursor-grab hover:bg-slate-700">+ Flex Section</button>
         </div>
       </div>
 
-      <div className="p-4 md:p-6 flex-1">
+      <div className="p-6 flex-1">
         <h3 className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-3">Inspector</h3>
-        {selected ? React.createElement(selected) : <p className="text-xs text-slate-500 italic">Click an element on the page to edit.</p>}
+        {selected ? React.createElement(selected) : <p className="text-xs text-slate-500 italic">Click an element on the page to edit its properties.</p>}
       </div>
     </div>
   );
 };
 
 // ==========================================
-// 3. THE UNIFIED WEBSITE VIEWER (Responsive Wrapper)
+// 3. THE UNIFIED WEBSITE VIEWER
 // ==========================================
 export default function UnifiedWebsite({ isAdmin }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -136,50 +135,38 @@ export default function UnifiedWebsite({ isAdmin }) {
     loadData();
   }, []);
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-bold text-slate-400">Loading Website...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center font-bold">Loading Website...</div>;
 
   return (
-    // If NOT editing, normal page flow. If EDITING, lock screen height and use flexbox.
-    <div className={isEditing ? "h-screen w-full overflow-hidden bg-slate-100" : "min-h-screen w-full bg-white relative"}>
+    <div className="min-h-screen bg-white relative">
+      {/* THE MAGIC: We pass isEditing to the enabled prop! */}
       <Editor resolver={{ ResizableSection, ChurchHeader }} enabled={isEditing}>
 
-        {/* THE EDIT TOGGLE BUTTON - Now responsive for mobile screens */}
+        {/* THE SAFETY CHECK: This button only exists if isAdmin is true */}
         {isAdmin && (
           <button
             onClick={() => setIsEditing(!isEditing)}
-            className={`fixed bottom-4 left-4 md:bottom-6 md:left-6 z-[60] px-4 py-2 md:px-6 md:py-3 text-xs md:text-base rounded-full font-bold shadow-xl transition-all ${isEditing ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white hover:bg-emerald-600'}`}
+            className={`fixed bottom-6 left-6 z-50 px-6 py-3 rounded-full font-bold shadow-xl transition-all ${isEditing ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white hover:bg-emerald-600'}`}
           >
             {isEditing ? "Close Editor" : "✏️ Edit Site"}
           </button>
         )}
 
-        {/* RESPONSIVE EDITING LAYOUT */}
-        <div className={`transition-all duration-300 w-full h-full ${isEditing ? 'flex flex-col md:flex-row' : 'block'}`}>
-          
-          {/* THE CANVAS AREA */}
-          <div className={`${isEditing ? 'flex-1 overflow-y-auto p-2 md:p-8' : 'w-full'}`}>
-            {/* When editing, the canvas looks like a piece of paper. When live, it takes up the whole screen. */}
-            <div className={`${isEditing ? 'w-full max-w-6xl mx-auto bg-white min-h-[80vh] shadow-sm rounded-xl border border-slate-200 pb-20' : 'w-full'}`}>
-              {pageData ? (
-                <Frame data={pageData} />
-              ) : (
-                <Frame>
-                  <Element is={ResizableSection} canvas>
-                    <ChurchHeader text="Welcome to the Live Site!" />
-                  </Element>
-                </Frame>
-              )}
-            </div>
-          </div>
-
-          {/* THE SIDEBAR CONTAINER - 40% height on mobile, 320px width on desktop */}
-          {isEditing && (
-            <div className="w-full md:w-80 h-[40vh] md:h-full border-t md:border-t-0 md:border-l border-slate-700 shadow-2xl flex-shrink-0">
-              <EditorSidebar />
-            </div>
+        {/* The Live Website Viewport */}
+        <div className={`transition-all duration-300 ${isEditing ? 'pr-80' : 'pr-0'}`}>
+          {pageData ? (
+            <Frame data={pageData} />
+          ) : (
+            <Frame>
+              <Element is={ResizableSection} canvas>
+                <ChurchHeader text="Welcome to the Live Site!" />
+              </Element>
+            </Frame>
           )}
-
         </div>
+
+        {/* Sidebar only renders if we clicked the Edit button */}
+        {isEditing && <EditorSidebar />}
 
       </Editor>
     </div>
