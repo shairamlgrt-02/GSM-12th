@@ -1457,8 +1457,8 @@ FormBuilderBlock.craft = {
     description: "Please fill out your details.",
     submitText: "Register Now",
     fields: [
-      { type: 'text', label: 'Full Name', placeholder: 'Jane Doe', required: true, options: '', allowOther: false },
-      { type: 'text', label: 'Email', placeholder: 'jane@email.com', required: true, options: '', allowOther: false },
+      { type: 'text', label: 'Full Name', placeholder: ' ', required: true, options: '', allowOther: false },
+      { type: 'text', label: 'Email', placeholder: ' ', required: true, options: '', allowOther: false },
       { type: 'radio', label: 'Dietary Restrictions', placeholder: '', required: true, options: 'None, Vegetarian, Vegan', allowOther: true }
     ],
     // Set professional emerald defaults instead of vibrant pink:
