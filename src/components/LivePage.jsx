@@ -186,11 +186,18 @@ RegistrationBlock.craft = { rules: { canDrag: () => true } };
 
 // 9. CREATE THE TABS BLOCK
 // --- 1. THE DROP ZONE (Inside each tab) ---
+// This is the container for the actual content blocks like Planning Center.
 const TabDropZone = ({ children }) => {
   const { connectors: { connect } } = useNode();
   return (
-    <div ref={connect} className="min-h-[150px] w-full p-6 bg-white rounded-b-xl transition-all">
-      {children ? children : <div className="text-center text-slate-300 text-xs py-8 border-2 border-dashed border-slate-100 rounded-lg">Drag blocks here...</div>}
+    // We removed forced white background here so only the blocks dropped inside define the look
+    <div ref={connect} className="min-h-[150px] w-full transition-all">
+      {children ? children : (
+        /* Styled placeholder for an empty tab */
+        <div className="text-center text-slate-400 text-xs py-16 border-2 border-dashed border-slate-200 rounded-2xl bg-white/40 backdrop-blur-sm">
+          Drag blocks here...
+        </div>
+      )}
     </div>
   );
 };
@@ -210,22 +217,25 @@ const TabsBlockSettings = () => {
   });
 
   return (
-    <div className="space-y-4 p-4 bg-slate-50 border-t border-slate-200 mt-4">
-      <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Manage Tabs</h3>
-      <div className="space-y-2">
+    <div className="space-y-4 p-4 text-left" style={{ backgroundColor: '#1e293b', borderTop: '1px solid #334155' }}>
+      <h3 className="text-xs font-black text-white uppercase tracking-widest">Manage Tabs</h3>
+      <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar pr-1">
         {tabs.map((tab, i) => (
-          <div key={tab.id} className="flex gap-2 items-center">
+          <div key={tab.id} className="flex gap-2 items-center p-2 rounded-lg" style={{ backgroundColor: '#0f172a', border: '1px solid #334155' }}>
             <input
               type="text"
               value={tab.label}
               onChange={(e) => updateTab(i, e.target.value)}
-              className="flex-1 bg-white border border-slate-200 p-2 rounded-lg text-xs outline-none focus:border-blue-500"
+              className="flex-1 bg-transparent text-white text-xs outline-none transition-colors font-bold"
+              style={{ color: '#ffffff' }}
+              onFocus={(e) => e.target.style.color = '#10b981'}
+              onBlur={(e) => e.target.style.color = '#ffffff'}
             />
-            <button onClick={() => removeTab(i)} className="text-rose-400 hover:text-rose-600 font-bold p-2 text-xs">✕</button>
+            <button onClick={() => removeTab(i)} className="text-rose-400 hover:text-rose-500 font-bold p-1 text-xs transition-colors">✕</button>
           </div>
         ))}
       </div>
-      <button onClick={addTab} className="w-full bg-slate-800 hover:bg-slate-900 text-white p-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">
+      <button onClick={addTab} className="w-full py-2 border border-dashed rounded text-xs font-bold transition-colors" style={{ borderColor: '#334155', color: '#94a3b8' }}>
         + Add Tab
       </button>
     </div>
@@ -236,35 +246,42 @@ const TabsBlockSettings = () => {
 const TabsBlock = ({ tabs }) => {
   const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
   const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
-  const [activeTabId, setActiveTabId] = useState(tabs[0]?.id);
+  const [activeTabId, setActiveTabId] = React.useState(tabs[0]?.id);
 
   // Safety check: if a tab is deleted, fallback to the first available tab
   const currentTabExists = tabs.find(t => t.id === activeTabId);
   const currentActiveTab = currentTabExists ? activeTabId : tabs[0]?.id;
 
   return (
-    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full max-w-5xl mx-auto my-8 transition-all ${enabled ? 'border-2 border-dashed border-blue-300 py-4 min-h-[200px]' : ''} ${selected && enabled ? 'ring-4 ring-blue-500 z-10' : ''}`}>
-      {enabled && <span className="absolute top-0 left-0 bg-blue-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Tabs Container</span>}
+    <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full max-w-5xl mx-auto my-8 transition-all ${enabled ? 'border-2 border-dashed border-emerald-400/9 py-4 min-h-[200px]' : ''} ${selected && enabled ? 'ring-4 ring-emerald-500 z-10' : ''}`}>
+      {enabled && <span className="absolute top-0 left-0 bg-emerald-900 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Tabs Container</span>}
 
-      <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden ${enabled ? 'pointer-events-none' : ''}`}>
+      {/* CHANGED: Container is now completely transparent (removed bg-white) */}
+      <div className={`bg-transparent overflow-hidden ${enabled ? 'pointer-events-none' : ''}`}>
 
-        {/* TAB NAVIGATION HEADER */}
-        <div className="flex bg-slate-50 border-b border-slate-200 px-2 pt-2 gap-1 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTabId(tab.id)}
-              className={`px-6 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${currentActiveTab === tab.id ? 'bg-white text-blue-900 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] border-t-2 border-blue-500' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 border-t-2 border-transparent'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* TAB NAVIGATION HEADER - Matched exact reference snippet */}
+        <div className="flex justify-center mb-10 w-full">
+          {/* Using your exact reference container classes here: */}
+          <div className="flex bg-emerald-900/5 p-1 rounded-xl gap-1 shadow-inner w-full max-w-2xl mx-auto overflow-x-auto no-scrollbar">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTabId(tab.id)}
+                className={`flex-1 px-5 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${currentActiveTab === tab.id
+                    ? 'bg-emerald-900 text-white shadow-sm'
+                    : 'text-emerald-900/30 hover:text-emerald-900/80 hover:bg-emerald-900/5'
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* TAB CONTENT (Hidden via CSS when not active so Craft doesn't crash) */}
-        <div className="bg-white pointer-events-auto">
+        {/* TAB CONTENT AREA (Transparent, blocks inside are solid) */}
+        <div className="pointer-events-auto">
           {tabs.map((tab) => (
-            <div key={tab.id} className={currentActiveTab === tab.id ? 'block' : 'hidden'}>
+            <div key={tab.id} className={currentActiveTab === tab.id ? 'block animate-in fade-in slide-in-from-bottom-4 duration-500' : 'hidden'}>
               {/* Every tab gets its own unique canvas drop zone! */}
               <Element canvas id={tab.id} is={TabDropZone} />
             </div>
@@ -1113,11 +1130,16 @@ CommitteeChecklistBlock.craft = {
 
 // 14. CREATE THE FORM BUILDER SETTINGS & BLOCK
 const FormBuilderSettings = () => {
-  const { setProp, title, description, submitText, fields } = useNode((node) => ({
+  const { setProp, title, description, submitText, fields, headerColor, headerTextColor, buttonColor, buttonTextColor } = useNode((node) => ({
     title: node.data.props.title,
     description: node.data.props.description,
     submitText: node.data.props.submitText,
     fields: node.data.props.fields,
+    // Add these new properties:
+    headerColor: node.data.props.headerColor,
+    headerTextColor: node.data.props.headerTextColor,
+    buttonColor: node.data.props.buttonColor,
+    buttonTextColor: node.data.props.buttonTextColor
   }));
 
   const updateField = (index, key, value) => {
@@ -1128,14 +1150,7 @@ const FormBuilderSettings = () => {
 
   const addField = () => {
     setProp((props) => {
-      props.fields.push({
-        type: 'text',
-        label: 'New Question',
-        placeholder: '',
-        required: false,
-        options: '',
-        allowOther: false
-      });
+      props.fields.push({ type: 'text', label: 'New Question', placeholder: '', required: false, options: '', allowOther: false });
     });
   };
 
@@ -1146,7 +1161,51 @@ const FormBuilderSettings = () => {
   };
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4 text-left">
+      {/* --- NEW STYLE SETTINGS SECTION --- */}
+      <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg space-y-2 mb-4">
+        <h3 className="text-xs font-black text-white uppercase tracking-widest mb-1">Aesthetics</h3>
+
+        <div className="grid grid-cols-2 gap-2">
+          {/* Form Header Background Color */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400">Header BG Color</label>
+            <div className="flex gap-2">
+              <input type="color" value={headerColor || '#064e3b'} onChange={(e) => setProp(props => props.headerColor = e.target.value)} className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer" />
+              <span className="text-[10px] text-slate-300 font-mono">{headerColor || '#064e3b'}</span>
+            </div>
+          </div>
+          {/* Form Header Text Color */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400">Header Text Color</label>
+            <div className="flex gap-2">
+              <input type="color" value={headerTextColor || '#ffffff'} onChange={(e) => setProp(props => props.headerTextColor = e.target.value)} className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer" />
+              <span className="text-[10px] text-slate-300 font-mono">{headerTextColor || '#ffffff'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {/* Button Background Color */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400">Button BG Color</label>
+            <div className="flex gap-2">
+              <input type="color" value={buttonColor || '#10b981'} onChange={(e) => setProp(props => props.buttonColor = e.target.value)} className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer" />
+              <span className="text-[10px] text-slate-300 font-mono">{buttonColor || '#10b981'}</span>
+            </div>
+          </div>
+          {/* Button Text Color */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400">Button Text Color</label>
+            <div className="flex gap-2">
+              <input type="color" value={buttonTextColor || '#ffffff'} onChange={(e) => setProp(props => props.buttonTextColor = e.target.value)} className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer" />
+              <span className="text-[10px] text-slate-300 font-mono">{buttonTextColor || '#ffffff'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* --- END NEW STYLE SETTINGS --- */}
+
       <div className="space-y-2">
         <label className="text-xs font-bold text-slate-400">Form Title</label>
         <input
@@ -1163,6 +1222,16 @@ const FormBuilderSettings = () => {
           type="text"
           value={description || ''}
           onChange={(e) => setProp(props => props.description = e.target.value)}
+          className="w-full p-2 bg-slate-800 rounded text-xs text-white border border-slate-700"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-slate-400">Submit Button Text</label>
+        <input
+          type="text"
+          value={submitText || ''}
+          onChange={(e) => setProp(props => props.submitText = e.target.value)}
           className="w-full p-2 bg-slate-800 rounded text-xs text-white border border-slate-700"
         />
       </div>
@@ -1211,7 +1280,6 @@ const FormBuilderSettings = () => {
                 Req
               </label>
 
-              {/* NEW "+ OTHER" TOGGLE FOR RADIO AND CHECKBOXES */}
               {(field.type === 'radio' || field.type === 'checkbox') && (
                 <label className="flex items-center gap-1 text-[10px] text-slate-400 uppercase font-bold cursor-pointer hover:text-white transition-colors">
                   <input
@@ -1247,11 +1315,9 @@ const FormBuilderSettings = () => {
     </div>
   );
 };
-
-const FormBuilderBlock = ({ title, description, submitText, fields }) => {
+const FormBuilderBlock = ({ title, description, submitText, fields, headerColor, headerTextColor, buttonColor, buttonTextColor }) => {
   const { connectors: { connect, drag }, selected } = useNode((state) => ({ selected: state.events.selected }));
   const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
-  const { setRegistrations } = useContext(AppDataContext) || {};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1266,7 +1332,6 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
     fields.forEach((field, i) => {
       fieldLabels.push(field.label);
 
-      // Intelligently find the input value regardless of how it's named in the HTML
       let value = rawData[field.label] || rawData[`field_${i}`] || "N/A";
 
       if (field.type === 'checkbox') {
@@ -1297,16 +1362,17 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
     }
   };
 
-  const safeName = (label, index) => label ? label.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() : `field_${index}`;
-
   return (
     <div ref={(ref) => enabled ? connect(drag(ref)) : null} className={`relative w-full max-w-2xl mx-auto transition-all ${enabled ? 'border-2 border-dashed border-rose-300 py-4 min-h-[100px]' : ''} ${selected && enabled ? 'ring-4 ring-rose-500 z-10' : ''}`}>
       {enabled && <span className="absolute top-0 left-0 bg-rose-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Form Builder</span>}
 
+      {/* --- UPDATED STYLE TO MATCH AESTHETIC --- */}
       <div className={`bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden ${enabled ? 'pointer-events-none' : ''}`}>
-        <div className="bg-slate-900 p-8 text-center border-b-4 border-rose-500">
-          <h2 className="font-serif text-3xl text-white tracking-tight mb-2">{title}</h2>
-          {description && <p className="text-slate-400 text-sm">{description}</p>}
+
+        {/* Header uses custom styles: */}
+        <div className="p-8 text-center" style={{ backgroundColor: headerColor || '#064e3b' }}>
+          <h2 className="font-serif text-3xl tracking-tight mb-2" style={{ color: headerTextColor || '#ffffff' }}>{title}</h2>
+          {description && <p className="text-sm opacity-80" style={{ color: headerTextColor || '#ffffff' }}>{description}</p>}
         </div>
 
         <div className="p-8 space-y-6">
@@ -1316,13 +1382,13 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
                 return (
                   <div key={i} className="flex flex-col gap-2">
                     <label className="font-bold text-slate-700 text-sm flex gap-1">
-                      {field.label} {field.required && <span className="text-rose-500">*</span>}
+                      {field.label} {field.required && <span className="text-emerald-500">*</span>}
                     </label>
 
                     {field.type === 'textarea' || field.type === 'paragraph' ? (
-                      <textarea name={field.label} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none resize-none min-h-[100px]" />
+                      <textarea name={field.label} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none resize-none min-h-[100px]" />
                     ) : field.type === 'select' || field.type === 'dropdown' ? (
-                      <select name={field.label} required={field.required} defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none">
+                      <select name={field.label} required={field.required} defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none">
                         <option value="" disabled>{field.placeholder || 'Select an option'}</option>
                         {field.options && field.options.split(',').map((opt, optIndex) => (
                           <option key={optIndex} value={opt.trim()}>{opt.trim()}</option>
@@ -1332,15 +1398,15 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
                       <div className="space-y-2 mt-1">
                         {field.options && field.options.split(',').map((opt, optIndex) => (
                           <label key={optIndex} className="flex items-center gap-3 cursor-pointer">
-                            <input type="radio" name={field.label} value={opt.trim()} required={field.required && !field.allowOther} className="accent-rose-500 w-4 h-4" />
+                            <input type="radio" name={field.label} value={opt.trim()} required={field.required && !field.allowOther} className="accent-emerald-500 w-4 h-4" />
                             <span className="text-sm text-slate-700">{opt.trim()}</span>
                           </label>
                         ))}
                         {field.allowOther && (
                           <label className="flex items-center gap-3 cursor-pointer mt-2">
-                            <input type="radio" name={field.label} value="Other" className="accent-rose-500 w-4 h-4" />
+                            <input type="radio" name={field.label} value="Other" className="accent-emerald-500 w-4 h-4" />
                             <span className="text-sm text-slate-700">Other:</span>
-                            <input type="text" name={`${field.label}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
+                            <input type="text" name={`${field.label}_other`} className="flex-1 border-b border-slate-300 focus:border-emerald-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
                           </label>
                         )}
                       </div>
@@ -1348,7 +1414,7 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
                       <div className="space-y-2 mt-1">
                         {field.options && field.options.split(',').map((opt, optIndex) => (
                           <label key={optIndex} className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name={field.label} value={opt.trim()} className="accent-rose-500 w-4 h-4 rounded" />
+                            <input type="checkbox" name={field.label} value={opt.trim()} className="accent-emerald-500 w-4 h-4 rounded" />
                             <span className="text-sm text-slate-700">{opt.trim()}</span>
                           </label>
                         ))}
@@ -1361,12 +1427,18 @@ const FormBuilderBlock = ({ title, description, submitText, fields }) => {
                         )}
                       </div>
                     ) : (
-                      <input type={field.type} name={field.label} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-rose-500 outline-none" />
+                      <input type={field.type} name={field.label} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none" />
                     )}
                   </div>
                 );
               })}
-              <button type={enabled ? "button" : "submit"} className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-xl mt-4 shadow-md text-lg">
+
+              {/* Submit Button uses custom styles: */}
+              <button
+                type={enabled ? "button" : "submit"}
+                className="w-full font-bold py-4 rounded-xl mt-4 shadow-md text-lg active:scale-95 transition-all"
+                style={{ backgroundColor: buttonColor || '#10b981', color: buttonTextColor || '#ffffff' }}
+              >
                 {submitText}
               </button>
             </form>
@@ -1388,11 +1460,16 @@ FormBuilderBlock.craft = {
       { type: 'text', label: 'Full Name', placeholder: 'Jane Doe', required: true, options: '', allowOther: false },
       { type: 'text', label: 'Email', placeholder: 'jane@email.com', required: true, options: '', allowOther: false },
       { type: 'radio', label: 'Dietary Restrictions', placeholder: '', required: true, options: 'None, Vegetarian, Vegan', allowOther: true }
-    ]
+    ],
+    // Set professional emerald defaults instead of vibrant pink:
+    headerColor: '#064e3b', // Dark emerald
+    headerTextColor: '#ffffff', // White
+    buttonColor: '#10b981', // Emerald green
+    buttonTextColor: '#ffffff' // White
   },
   related: {
     settings: FormBuilderSettings
-  }, // <--- THIS COMMA WAS MISSING
+  },
   rules: { canDrag: () => true }
 };
 
@@ -1898,3 +1975,4 @@ export default function LivePage({ isAdmin, activeTab = 'home', appData }) {
     </AppDataContext.Provider>
   );
 }
+
