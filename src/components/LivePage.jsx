@@ -268,8 +268,8 @@ const TabsBlock = ({ tabs }) => {
                 key={tab.id}
                 onClick={() => setActiveTabId(tab.id)}
                 className={`flex-1 px-5 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${currentActiveTab === tab.id
-                    ? 'bg-emerald-900 text-white shadow-sm'
-                    : 'text-emerald-900/30 hover:text-emerald-900/80 hover:bg-emerald-900/5'
+                  ? 'bg-emerald-900 text-white shadow-sm'
+                  : 'text-emerald-900/30 hover:text-emerald-900/80 hover:bg-emerald-900/5'
                   }`}
               >
                 {tab.label}
@@ -1370,14 +1370,14 @@ const FormBuilderBlock = ({ title, description, submitText, fields, headerColor,
       <div className={`bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden ${enabled ? 'pointer-events-none' : ''}`}>
 
         {/* Header uses custom styles: */}
-        <div className="p-8 text-center" style={{ backgroundColor: headerColor || '#064e3b' }}>
-          <h2 className="font-serif text-3xl tracking-tight mb-2" style={{ color: headerTextColor || '#ffffff' }}>{title}</h2>
+        <div className="p-4 text-center" style={{ backgroundColor: headerColor || '#064e3b' }}>
+          <h2 className="font-serif text-2xl tracking-tight mb-1" style={{ color: headerTextColor || '#ffffff' }}>{title}</h2>
           {description && <p className="text-sm opacity-80" style={{ color: headerTextColor || '#ffffff' }}>{description}</p>}
         </div>
 
-        <div className="p-8 space-y-6">
+        <div className="p-6 space-y-5">
           {fields && fields.length > 0 ? (
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-4" onSubmit={handleSubmit}>
               {fields.map((field, i) => {
                 return (
                   <div key={i} className="flex flex-col gap-2">
@@ -1386,10 +1386,10 @@ const FormBuilderBlock = ({ title, description, submitText, fields, headerColor,
                     </label>
 
                     {field.type === 'textarea' || field.type === 'paragraph' ? (
-                      <textarea name={field.label} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none resize-none min-h-[100px]" />
+                      <textarea name={field.label} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none resize-none min-h-[100px]" />
                     ) : field.type === 'select' || field.type === 'dropdown' ? (
                       <select name={field.label} required={field.required} defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none">
-                        <option value="" disabled>{field.placeholder || 'Select an option'}</option>
+                        <option value="" disabled>Select an option...</option>
                         {field.options && field.options.split(',').map((opt, optIndex) => (
                           <option key={optIndex} value={opt.trim()}>{opt.trim()}</option>
                         ))}
@@ -1406,7 +1406,7 @@ const FormBuilderBlock = ({ title, description, submitText, fields, headerColor,
                           <label className="flex items-center gap-3 cursor-pointer mt-2">
                             <input type="radio" name={field.label} value="Other" className="accent-emerald-500 w-4 h-4" />
                             <span className="text-sm text-slate-700">Other:</span>
-                            <input type="text" name={`${field.label}_other`} className="flex-1 border-b border-slate-300 focus:border-emerald-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
+                            <input type="text" name={`${field.label}_other`} className="flex-1 border-b border-slate-300 focus:border-emerald-500 outline-none text-sm px-2 py-1 bg-transparent" />
                           </label>
                         )}
                       </div>
@@ -1422,12 +1422,12 @@ const FormBuilderBlock = ({ title, description, submitText, fields, headerColor,
                           <label className="flex items-center gap-3 cursor-pointer mt-2">
                             <input type="checkbox" name={field.label} value="Other" className="accent-rose-500 w-4 h-4 rounded" />
                             <span className="text-sm text-slate-700">Other:</span>
-                            <input type="text" name={`${field.label}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" placeholder="Please specify..." />
+                            <input type="text" name={`${field.label}_other`} className="flex-1 border-b border-slate-300 focus:border-rose-500 outline-none text-sm px-2 py-1 bg-transparent" />
                           </label>
                         )}
                       </div>
                     ) : (
-                      <input type={field.type} name={field.label} placeholder={field.placeholder} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none" />
+                      <input type={field.type} name={field.label} required={field.required} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none" />
                     )}
                   </div>
                 );
@@ -1436,7 +1436,7 @@ const FormBuilderBlock = ({ title, description, submitText, fields, headerColor,
               {/* Submit Button uses custom styles: */}
               <button
                 type={enabled ? "button" : "submit"}
-                className="w-full font-bold py-4 rounded-xl mt-4 shadow-md text-lg active:scale-95 transition-all"
+                className="w-full font-bold py-3 rounded-xl mt-4 shadow-md text-l active:scale-90 transition-all"
                 style={{ backgroundColor: buttonColor || '#10b981', color: buttonTextColor || '#ffffff' }}
               >
                 {submitText}
@@ -1457,14 +1457,14 @@ FormBuilderBlock.craft = {
     description: "Please fill out your details.",
     submitText: "Register Now",
     fields: [
-      { type: 'text', label: 'Full Name', placeholder: ' ', required: true, options: '', allowOther: false },
-      { type: 'text', label: 'Email', placeholder: ' ', required: true, options: '', allowOther: false },
-      { type: 'radio', label: 'Dietary Restrictions', placeholder: '', required: true, options: 'None, Vegetarian, Vegan', allowOther: true }
+      { type: 'text', label: 'Full Name', placeholder: '', required: true, options: '', allowOther: false },
+      { type: 'text', label: 'Mobile', placeholder: '', required: true, options: '', allowOther: false },
+      { type: 'radio', label: 'Size', placeholder: '', required: true, options: 'S, M, L', allowOther: true }
     ],
     // Set professional emerald defaults instead of vibrant pink:
     headerColor: '#064e3b', // Dark emerald
     headerTextColor: '#ffffff', // White
-    buttonColor: '#10b981', // Emerald green
+    buttonColor: '#064e3b', // Dark emerald
     buttonTextColor: '#ffffff' // White
   },
   related: {
@@ -1706,7 +1706,7 @@ const BannerBlock = ({ bgType, bgImage, bgColor, overlayOpacity, aspect, roundin
 
   return (
     <div ref={(ref) => enabled ? connect(drag(ref)) : null}
-      className={`relative w-full flex items-center justify-center overflow-hidden transition-all ${rounding} ${enabled ? 'border-2 border-dashed border-purple-300' : ''} ${selected && enabled ? 'ring-4 ring-purple-500 z-10' : ''}`}
+      className={`relative w-full flex items-center justify-center overflow-hidden transition-all ${rounding} ${enabled ? 'shadow-xl border-2 border-dashed border-purple-300' : ''} ${selected && enabled ? 'ring-4 ring-purple-500 z-10' : ''}`}
       style={{ aspectRatio: aspect, minHeight: aspect === 'auto' ? '250px' : 'auto', ...backgroundStyle }}
     >
       {enabled && <span className="absolute top-0 left-0 bg-purple-500 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-widest z-20 pointer-events-none">Banner</span>}
